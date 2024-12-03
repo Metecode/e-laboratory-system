@@ -6,7 +6,7 @@ const Page = () => {
 
 	return (
 		<View>
-			<Text>Welcome back back {user?.email}</Text>
+			<Text>Welcome back backk {user?.email}</Text>
 			<Button title="Sign out" onPress={() => auth().signOut()} />
 		</View>
 	);
