@@ -38,7 +38,7 @@ export default function AdminLayout() {
       <Tabs.Screen 
         name="home" 
         options={{
-          title: 'Anasayfa',
+          title: 'E-Laboratuvar Yönetim Paneli',
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
