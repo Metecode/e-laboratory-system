@@ -11,10 +11,17 @@ export default function RootLayout() {
 
 	return (  
 		<Stack>  
+			<Stack.Screen 
+				name="Splash" 
+				options={{ 
+					headerShown: false,
+					gestureEnabled: false 
+				}} 
+			/>
 			<Stack.Screen name="index" options={{ title: 'Login' }} />  
 			<Stack.Screen name="(auth)" options={{ headerShown: false }} />  
 			<Stack.Screen name="(admin)" options={{ headerShown: false }} />  
-			<Stack.Screen name="Register" options={{ headerShown: false }} />  
+			<Stack.Screen name="Register" options={{ title:'Kayıt Ol', headerShown: false }} />  
 		</Stack>  
 	);  
 }  

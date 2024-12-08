@@ -119,15 +119,14 @@ export default function Register() {
       await auth().createUserWithEmailAndPassword(email, password);
       const user = auth().currentUser;
       if (user) {
-        const userId = uuid.v4();
         await firestore()
           .collection('users')
-          .doc(userId)
+          .doc(user.uid)
           .set({
             firstName: fname,
             lastName: lname,
             idNumber: idNumber,
-            uid: userId,
+            uid: user.uid,
             email: email,
             password: password,
             birthDate: dateOfBirth ? formatFirestoreDate(dateOfBirth) : null,
