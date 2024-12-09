@@ -1,77 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import firestore from '@react-native-firebase/firestore';
+import React, { useState, useEffect } from 'react';  
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';  
+import firestore from '@react-native-firebase/firestore';  
+
+// Patient interface tipini tanımlayın  
+interface Patient {  
+  id: string;  
+  firstName?: string;  
+  lastName?: string;  
+  gender?: string;  
+  age?: number;  
+  phone?: string;  
+}  
 
 const patients = () => {
-  const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [patients, setPatients] = useState<Patient[]>([]);  
+  const [loading, setLoading] = useState<boolean>(true);  
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        const patientCollection = await firestore().collection('users').get();
+  useEffect(() => {  
+    const fetchPatients = async () => {  
+      try {  
+        const patientCollection = await firestore().collection('users').get();  
         
-        const patientList = patientCollection.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const patientList: Patient[] = patientCollection.docs.map(doc => ({   
+          ...doc.data() as Patient  
+        }));  
 
-        setPatients(patientList);
-        setLoading(false);
-      } catch (error) {
-        console.error('Hasta listesi getirilirken hata oluştu:', error);
-        setLoading(false);
-      }
-    };
+        setPatients(patientList);  
+        setLoading(false);  
+      } catch (error) {  
+        console.error('Hasta listesi getirilirken hata oluştu:', error);  
+        setLoading(false);  
+      }  
+    };  
 
-    fetchPatients();
-  }, []);
+    fetchPatients();  
+  }, []);  
 
-  const renderPatientItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.patientItem}
-    >
-      <View style={styles.patientInfo}>
-        <Text style={styles.patientName}>
-          {item.name || 'İsimsiz Hasta'} {item.surname || ''}
+  const renderPatientItem = ({ item }: { item: Patient }) => (  
+    <TouchableOpacity   
+      style={styles.patientItem}  
+    >  
+      <View style={styles.patientInfo}>  
+        <Text style={styles.patientName}>  
+          {item.firstName || 'İsimsiz Hasta'} {item.lastName || ''}  
+        </Text>  
+        <Text style={styles.patientDetails}>  
+          Cinsiyet: {item.gender || 'Belirtilmemiş'}  
+        </Text>  
+        <Text style={styles.patientDetails}>  
+          Yaş: {item.age || 'Belirtilmemiş'}  
         </Text>
-        <Text style={styles.patientDetails}>
-          Yaş: {item.age || 'Belirtilmemiş'}
-        </Text>
-        <Text style={styles.patientDetails}>
-          Telefon: {item.phone || 'Kayıtlı Değil'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </View>  
+    </TouchableOpacity>  
+  );  
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Hastalar yükleniyor...</Text>
-      </View>
-    );
-  }
+  if (loading) {  
+    return (  
+      <View style={styles.loadingContainer}>  
+        <ActivityIndicator size="large" color="#0000ff" />  
+        <Text>Hastalar yükleniyor...</Text>  
+      </View>  
+    );  
+  }  
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Hasta Listesi</Text>
-      {patients.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Henüz hasta kaydı bulunmamaktadır.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={patients}
-          renderItem={renderPatientItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-        />
-      )}
-    </View>
-  );
-};
+  return (  
+    <View style={styles.container}>  
+      <Text style={styles.title}>Hasta Listesi</Text>  
+      {patients.length === 0 ? (  
+        <View style={styles.emptyContainer}>  
+          <Text style={styles.emptyText}>Henüz hasta kaydı bulunmamaktadır.</Text>  
+        </View>  
+      ) : (  
+        <FlatList  
+          data={patients}  
+          renderItem={renderPatientItem}  
+          keyExtractor={(item) => item.id}  
+          contentContainerStyle={styles.listContainer}  
+        />  
+      )}  
+    </View>  
+  );  
+}; 
 
 const styles = StyleSheet.create({
   container: {
