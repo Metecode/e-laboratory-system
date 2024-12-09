@@ -21,14 +21,14 @@ export default function Index() {
 				onPress={() => {
 					router.replace('/AdminLogin');
 				}}>
-				<Text style={styles.btnText}>Admin Login</Text>
+				<Text style={styles.btnText}>Yetkili Girişi</Text>
 			  </TouchableOpacity>
 			  <TouchableOpacity
 				style={styles.btn}
 				onPress={() => {
-					router.replace('/AdminLogin');
+					router.replace('/UserLogin');
 				}}>
-				<Text style={styles.btnText}>User Login</Text>
+				<Text style={styles.btnText}>Kullanıcı Girişi</Text>
 			  </TouchableOpacity>
 			</View>
 		  );

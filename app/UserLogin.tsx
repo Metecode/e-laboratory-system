@@ -11,14 +11,15 @@ import {
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useRouter } from 'expo-router';
+import { FirebaseError } from 'firebase/app';
 
-export default function AdminLogin() {
-  const [email, setEmail] = useState('');
+export default function UserLogin() {
+	const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const adminLogin = async () => {
+  const userLogin = async () => {
     setLoading(true);
     try {
       // Firebase Authentication ile giriş yap
@@ -26,7 +27,7 @@ export default function AdminLogin() {
 
       // Admin verilerini query parametreleriyle aktar
       router.replace(
-        '/(admin)/home' // Query parametreleri
+        '/(auth)/home' // Query parametreleri
       );
       alert('Login successful!');
     }
@@ -37,7 +38,6 @@ export default function AdminLogin() {
       setLoading(false);
     }
   };
-
 
   return (
     <View style={styles.container}>
@@ -59,11 +59,11 @@ export default function AdminLogin() {
         />
         <TouchableOpacity onPress={() => {
               router.replace(
-                '/UserLogin' // Query parametreleri
+                '/Register' // Query parametreleri
               );
             }}
         >
-          <Text style={styles.text} >Hasta girişi için tıklayınız</Text>
+          <Text style={styles.text} >Kayıt olmak için tıklayınız.</Text>
         </TouchableOpacity>
         {loading ? (
           <ActivityIndicator size={'small'} style={{ margin: 28 }} />
@@ -72,7 +72,7 @@ export default function AdminLogin() {
             style={styles.loginBtn}
             onPress={() => {
               if (email !== '' && password !== '') {
-                adminLogin();
+                userLogin();
               } else {
                 alert('Please Enter Data');
               }
