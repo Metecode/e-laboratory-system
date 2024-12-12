@@ -19,9 +19,9 @@ export default function AdminLayout() {
   };
 
   return (
-    <Tabs 
+    <Tabs
       screenOptions={{
-        headerStyle: { 
+        headerStyle: {
           backgroundColor: '#6a0dad', // Purple theme
         },
         headerTintColor: '#fff',
@@ -35,63 +35,63 @@ export default function AdminLayout() {
       }}
     >
       {/* Home/Dashboard Tab */}
-      <Tabs.Screen 
-        name="home" 
+      <Tabs.Screen
+        name="home"
         options={{
           title: 'E-Laboratuvar Yönetim Paneli',
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
-        }} 
+        }}
       />
 
       {/* Patients Tab */}
-      <Tabs.Screen 
-        name="patients" 
+      <Tabs.Screen
+        name="patients"
         options={{
           title: 'Hastalar',
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="people" size={size} color={color} />
           ),
-        }} 
+        }}
       />
 
       {/* Lab Results Tab */}
-      <Tabs.Screen 
-        name="labResults" 
+      <Tabs.Screen
+        name="labResults"
         options={{
           title: 'Tahlil Sonuçları',
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="science" size={size} color={color} />
           ),
-        }} 
+        }}
       />
 
       {/* Profile Tab */}
-      <Tabs.Screen 
-        name="profile" 
+      <Tabs.Screen
+        name="profile"
         options={{
           title: 'Profil',
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" size={size} color={color} />
           ),
-        }} 
+        }}
       />
 
       {/* Logout Tab */}
-      <Tabs.Screen 
-        name="logout" 
+      <Tabs.Screen
+        name="logout"
         options={{
           title: 'Çıkış',
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="logout" size={size} color={color} />
           ),
           tabBarButton: () => (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleLogout}
               style={{
-                flex: 1, 
-                justifyContent: 'center', 
+                flex: 1,
+                justifyContent: 'center',
                 alignItems: 'center',
                 backgroundColor: '#fff'
               }}
@@ -99,7 +99,14 @@ export default function AdminLayout() {
               <MaterialIcons name="logout" size={24} color="red" />
             </TouchableOpacity>
           )
-        }} 
+        }}
+      />
+      <Tabs.Screen
+        name="addLabResult"  // veya hangi ismi kullandıysanız  
+        options={{
+          title: 'Tahlil Ekle',
+          href: null, // Bu sayfayı tab bar'da göstermez  
+        }}
       />
     </Tabs>
   );

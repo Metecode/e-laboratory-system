@@ -1,4 +1,4 @@
-import React, { useState } from 'react';  
+import React, { useState, useEffect } from 'react';  
 import {   
   View,   
   Text,   
@@ -12,32 +12,86 @@ import SelectDropdown from 'react-native-select-dropdown';
 import firestore from '@react-native-firebase/firestore';  
 import auth from '@react-native-firebase/auth';  
 import { Feather } from '@expo/vector-icons';  
+import uuid from 'react-native-uuid';  
 
-// Define the test types as a constant  
+// Tarih formatını düzenleyen yardımcı fonksiyon  
+const formatDate = (date: Date): string => {  
+  const day = date.getDate().toString().padStart(2, '0');  
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');  
+  const year = date.getFullYear();  
+  const hours = date.getHours().toString().padStart(2, '0');  
+  const minutes = date.getMinutes().toString().padStart(2, '0');  
+  
+  return `${day}.${month}.${year} ${hours}:${minutes}`;  
+};  
+
+// Test türleri  
 const TEST_TYPES = [  
+  { value: 'IgA', label: 'IgA' },  
+  { value: 'IgM', label: 'IgM' },  
+  { value: 'IgG', label: 'IgG' },  
   { value: 'IgG1', label: 'IgG1' },  
   { value: 'IgG2', label: 'IgG2' },  
   { value: 'IgG3', label: 'IgG3' },  
-  { value: 'IgG4', label: 'IgG4' },  
-  { value: 'IgA', label: 'IgA' },  
-  { value: 'IgM', label: 'IgM' },  
-  { value: 'IgG', label: 'IgG' }  
+  { value: 'IgG4', label: 'IgG4' }  
 ];  
 
-// Interface for test result  
-interface TestResult {  
-  type: string;  
+// Interfaces  
+interface TestValue {  
+  id: string;  
   value: number;  
-  timestamp: Date;  
-  userId: string;  
+  unit: string;  
+  test_date: string;  
+}  
+
+interface TestResults {  
+  [key: string]: TestValue[];  
+}  
+
+interface User {  
+  id: string;  
+  firstName: string;  
+  lastName: string;  
+  birthDate?: string;  
 }  
 
 export default function AddTestResultScreen() {  
+  const [users, setUsers] = useState<User[]>([]);  
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);  
   const [selectedTest, setSelectedTest] = useState('');  
   const [testValue, setTestValue] = useState('');  
+  const [patientAge, setPatientAge] = useState('');  
+
+  // Kullanıcıları getir  
+  useEffect(() => {  
+    const fetchUsers = async () => {  
+      try {  
+        const usersSnapshot = await firestore()  
+          .collection('users')  
+          .get();  
+
+        const usersList = usersSnapshot.docs.map(doc => ({  
+          id: doc.id,  
+          ...doc.data()  
+        } as User));  
+
+        setUsers(usersList);  
+      } catch (error) {  
+        console.error('Kullanıcıları getirirken hata:', error);  
+        Alert.alert('Hata', 'Kullanıcılar yüklenemedi');  
+      }  
+    };  
+
+    fetchUsers();  
+  }, []);  
 
   const handleAddTestResult = async () => {  
     // Validate input  
+    if (!selectedUser) {  
+      Alert.alert('Hata', 'Lütfen bir kullanıcı seçiniz');  
+      return;  
+    }  
+
     if (!selectedTest) {  
       Alert.alert('Hata', 'Lütfen tahlil türünü seçiniz');  
       return;  
@@ -57,44 +111,112 @@ export default function AddTestResultScreen() {
     }  
 
     try {  
-      // Get current user  
-      const currentUser = auth().currentUser;  
-      if (!currentUser) {  
-        Alert.alert('Hata', 'Kullanıcı oturumu açık değil');  
-        return;  
-      }  
+      // Şu anki tarihi formatla  
+      const currentDate = new Date();  
+      const formattedTimestamp = formatDate(currentDate);  
 
-      // Prepare test result object  
-      const testResult: TestResult = {  
-        type: selectedTest,  
+      // Yeni test sonucu  
+      const newTestValue: TestValue = {  
+        id: uuid.v4().toString(),  
         value: numericValue,  
-        timestamp: new Date(),  
-        userId: currentUser.uid  
+        unit: 'mg/dL',  
+        test_date: formattedTimestamp,  
       };  
 
-      // Add to Firestore  
-      await firestore()  
-        .collection('users')  
-        .doc(currentUser.uid)  
-        .collection('testResults')  
-        .add(testResult);  
+      // Kullanıcının test sonuçları dokümanını al  
+      const testResultsRef = firestore()  
+        .collection('test_results')  
+        .doc(selectedUser.id);  
+
+      const testResultsDoc = await testResultsRef.get();  
+
+      if (testResultsDoc.exists) {  
+        // Mevcut sonuçları güncelle  
+        const currentData = testResultsDoc.data() as { results: TestResults };  
+        const currentResults = currentData.results || {};  
+        
+        // Seçilen test türü için sonuçlar dizisi  
+        const testTypeResults = currentResults[selectedTest] || [];  
+        
+        // Yeni sonucu diziye ekle  
+        const updatedResults = {  
+          ...currentResults,  
+          [selectedTest]: [...testTypeResults, newTestValue]  
+        };  
+
+        // Dökümanı güncelle  
+        await testResultsRef.update({  
+          firstName: selectedUser.firstName,  
+          lastName: selectedUser.lastName,  
+          results: updatedResults,  
+          lastUpdated: formattedTimestamp  
+        });  
+      } else {  
+        // Yeni döküman oluştur  
+        await testResultsRef.set({  
+            firstName: selectedUser.firstName,  
+            lastName: selectedUser.lastName,  
+          results: {  
+            [selectedTest]: [newTestValue]  
+          },  
+          lastUpdated: formattedTimestamp  
+        });  
+      }  
 
       // Success alert  
-      Alert.alert('Başarılı', 'Test sonucu başarıyla eklendi');  
+      Alert.alert('Başarılı', `${selectedUser.firstName} ${selectedUser.lastName} için ${selectedTest} test sonucu başarıyla eklendi`);  
       
       // Reset form  
       setTestValue('');  
       setSelectedTest('');  
+      setSelectedUser(null);  
+      setPatientAge('');  
     } catch (error) {  
       console.error('Test sonucu eklenirken hata:', error);  
       Alert.alert('Hata', 'Test sonucu eklenemedi');  
     }  
-  };  
+  };
 
   return (  
     <ScrollView style={styles.container}>  
       <Text style={styles.title}>Tahlil Sonucu Ekle</Text>  
       
+      {/* Kullanıcı Seçimi */}  
+      <View style={styles.inputContainer}>  
+        <Text style={styles.label}>Kullanıcı Seçiniz</Text>  
+        <SelectDropdown  
+          data={users}  
+          onSelect={(selectedItem, index) => {  
+            setSelectedUser(selectedItem);  
+          }}  
+          renderButton={(selectedItem, isOpened) => {  
+            return (  
+              <View style={styles.dropdownButtonStyle}>  
+                <Text style={styles.dropdownButtonTxtStyle}>  
+                  {selectedItem   
+                    ? `${selectedItem.firstName} ${selectedItem.lastName}`   
+                    : 'Kullanıcı Seçiniz'}  
+                </Text>  
+              </View>  
+            );  
+          }}  
+          renderItem={(item, index, isSelected) => {  
+            return (  
+              <View style={{  
+                ...styles.dropdownItemStyle,  
+                ...(isSelected && { backgroundColor: '#D2D9DF' })  
+              }}>  
+                <Text style={styles.dropdownItemTxtStyle}>  
+                  {item.firstName} {item.lastName}  
+                </Text>  
+              </View>  
+            );  
+          }}  
+          showsVerticalScrollIndicator={false}  
+          dropdownStyle={styles.dropdownMenuStyle}  
+        />  
+      </View>  
+      {/* Tahlil Türü Seçimi */}  
       <View style={styles.inputContainer}>  
         <Text style={styles.label}>Tahlil Türü</Text>  
         <SelectDropdown  
@@ -128,14 +250,15 @@ export default function AddTestResultScreen() {
         />  
       </View>  
 
+      {/* Test Değeri Girişi */}  
       <View style={styles.inputContainer}>  
-        <Text style={styles.label}>Test Değeri</Text>  
+        <Text style={styles.label}>Test Değeri (mg/dL)</Text>  
         <TextInput  
           style={styles.input}  
           value={testValue}  
           onChangeText={setTestValue}  
           keyboardType="decimal-pad"  
-          placeholder="Örn: 4,34"  
+          placeholder="Örn: 120,5"  
           placeholderTextColor="#888"  
         />  
       </View>  
@@ -150,6 +273,7 @@ export default function AddTestResultScreen() {
     </ScrollView>  
   );  
 }  
+
 
 const styles = StyleSheet.create({  
   container: {  
