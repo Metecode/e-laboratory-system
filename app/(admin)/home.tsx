@@ -1,130 +1,135 @@
-import React, { useEffect, useState, useCallback } from 'react';  
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';  
-import { Feather, MaterialIcons } from '@expo/vector-icons';  
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';  
-import firestore from '@react-native-firebase/firestore';  
-import { useRouter, useFocusEffect } from 'expo-router';  
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import { useRouter, useFocusEffect } from 'expo-router';
 
-interface UserDetails {  
-  firstName: string;  
-  email: string;  
-  photo?: string;  
-}  
+interface UserDetails {
+  firstName: string;
+  email: string;
+  photo?: string;
+}
 
-export default function HomeScreen() {  
-  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);  
-  const [patientCount, setPatientCount] = useState(0);  
-  const [loading, setLoading] = useState(true);  
-  const [refreshing, setRefreshing] = useState(false);  
-  const router = useRouter();  
+export default function HomeScreen() {
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [patientCount, setPatientCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
-  const fetchUserData = async (user: FirebaseAuthTypes.User) => {  
-    try {  
+  const fetchUserData = async (user: FirebaseAuthTypes.User) => {
+    try {
       // Fetch user document from Firestore  
-      const userDoc = await firestore()  
-        .collection('admin')  
-        .doc(user.uid)  
-        .get();  
+      const userDoc = await firestore()
+        .collection('admin')
+        .doc(user.uid)
+        .get();
 
-      const patientsSnapshot = await firestore()  
-        .collection('users')  
-        .get();   
+      const patientsSnapshot = await firestore()
+        .collection('users')
+        .get();
 
-      if (userDoc.exists) {  
+      if (userDoc.exists) {
         // Type assertion to ensure data matches UserDetails interface  
-        const userData = userDoc.data() as UserDetails;  
-        setUserDetails({  
-          ...userData,  
+        const userData = userDoc.data() as UserDetails;
+        setUserDetails({
+          ...userData,
           firstName: user.displayName || userData.firstName // Prioritize displayName from Auth  
-        });  
-        setPatientCount(patientsSnapshot.size);  
-      } else {  
-        console.log("No user document found in Firestore");  
-      }  
-    } catch (error) {  
-      console.error("Error fetching user data:", error);  
-    } finally {  
-      setLoading(false);  
-      setRefreshing(false);  
-    }  
-  };  
+        });
+        setPatientCount(patientsSnapshot.size);
+      } else {
+        console.log("No user document found in Firestore");
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   // Listener for authentication state  
-  useEffect(() => {  
-    const unsubscribe = auth().onAuthStateChanged((user) => {  
-      if (user) {  
-        fetchUserData(user);  
-      } else {  
-        router.replace('/');  
-        setLoading(false);  
-      }  
-    });  
+  useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged((user) => {
+      if (user) {
+        fetchUserData(user);
+      } else {
+        router.replace('/');
+        setLoading(false);
+      }
+    });
 
-    return () => unsubscribe();  
-  }, []);  
+    return () => unsubscribe();
+  }, []);
 
   // Use useFocusEffect to refresh data when screen comes into focus  
-  useFocusEffect(  
-    useCallback(() => {  
-      const user = auth().currentUser;  
-      if (user) {  
-        fetchUserData(user);  
-      }  
-    }, [])  
-  );  
+  useFocusEffect(
+    useCallback(() => {
+      const user = auth().currentUser;
+      if (user) {
+        fetchUserData(user);
+      }
+    }, [])
+  );
 
   // Pull to refresh functionality  
-  const onRefresh = useCallback(() => {  
-    setRefreshing(true);  
-    const user = auth().currentUser;  
-    if (user) {  
-      fetchUserData(user);  
-    }  
-  }, []);  
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    const user = auth().currentUser;
+    if (user) {
+      fetchUserData(user);
+    }
+  }, []);
 
-  const dashboardItems = [  
-    {  
-      icon: <MaterialIcons name="people" size={24} color="#6a0dad" />,  
-      title: 'Toplam Hasta',  
-      count: patientCount  
-    },  
-    {  
-      icon: <MaterialIcons name="science" size={24} color="#6a0dad" />,  
-      title: 'Bekleyen Testler',  
-      count: 25  
-    },  
-    {  
-      icon: <Feather name="check-circle" size={24} color="#6a0dad" />,  
-      title: 'Tamamlanan Testler',  
-      count: 125  
-    }  
-  ];  
+  const navigateToAddTestResult = () => {  
+    // Navigate to the AddTestResult screen  
+    router.push('/(admin)/addLabResult');  // Assumes you'll create this route  
+  }; 
 
-  if (loading) {  
-    return (  
-      <View style={styles.container}>  
-        <Text>Yükleniyor...</Text>  
-      </View>  
-    );  
-  }  
+  const dashboardItems = [
+    {
+      icon: <MaterialIcons name="people" size={24} color="#6a0dad" />,
+      title: 'Toplam Hasta',
+      count: patientCount
+    },
+    {
+      icon: <MaterialIcons name="science" size={24} color="#6a0dad" />,
+      title: 'Bekleyen Testler',
+      count: 25
+    },
+    {
+      icon: <Feather name="check-circle" size={24} color="#6a0dad" />,
+      title: 'Tamamlanan Testler',
+      count: 125
+    }
+  ];
 
-  if (!userDetails) {  
-    return (  
-      <View style={styles.container}>  
-        <Text>Kullanıcı bilgileri bulunamadı</Text>  
-      </View>  
-    );  
-  }  
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Yükleniyor...</Text>
+      </View>
+    );
+  }
+
+  if (!userDetails) {
+    return (
+      <View style={styles.container}>
+        <Text>Kullanıcı bilgileri bulunamadı</Text>
+      </View>
+    );
+  }
   return (
-    <ScrollView   
-      style={styles.container}  
-      refreshControl={  
-        <RefreshControl  
-          refreshing={refreshing}  
-          onRefresh={onRefresh}  
-          colors={['#6a0dad']}  
-        />  
-      }  
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#6a0dad']}
+        />
+      }
     >
       <Text style={styles.title}>Merhaba {userDetails?.firstName} 🙏</Text>
       <View style={styles.dashboardGrid}>
@@ -144,7 +149,7 @@ export default function HomeScreen() {
             <Feather name="plus-circle" size={24} color="#6a0dad" />
             <Text style={styles.quickActionText}>Yeni Hasta</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionButton}>
+          <TouchableOpacity style={styles.quickActionButton} onPress={navigateToAddTestResult}  >
             <MaterialIcons name="add-task" size={24} color="#6a0dad" />
             <Text style={styles.quickActionText}>Tahlil Ekle</Text>
           </TouchableOpacity>
