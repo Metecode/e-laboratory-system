@@ -36,7 +36,6 @@ const TEST_TYPES = [
   { value: 'IgG4', label: 'IgG4' }  
 ];  
 
-// Interfaces  
 interface TestValue {  
   id: string;  
   value: number;  
