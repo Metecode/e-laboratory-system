@@ -41,7 +41,8 @@ interface TestValue {
   id: string;  
   value: number;  
   unit: string;  
-  test_date: string;  
+  test_date: string;
+  age: string;
 }  
 
 interface TestResults {  
@@ -52,7 +53,7 @@ interface User {
   id: string;  
   firstName: string;  
   lastName: string;  
-  birthDate?: string;  
+  age?: string;
 }  
 
 export default function AddTestResultScreen() {  
@@ -117,10 +118,11 @@ export default function AddTestResultScreen() {
 
       // Yeni test sonucu  
       const newTestValue: TestValue = {  
-        id: uuid.v4().toString(),  
+        id: uuid.v4().toString(), 
         value: numericValue,  
         unit: 'mg/dL',  
         test_date: formattedTimestamp,  
+        age: selectedUser.age || '',
       };  
 
       // Kullanıcının test sonuçları dokümanını al  
@@ -148,14 +150,16 @@ export default function AddTestResultScreen() {
         await testResultsRef.update({  
           firstName: selectedUser.firstName,  
           lastName: selectedUser.lastName,  
+          userId: selectedUser.id, 
           results: updatedResults,  
-          lastUpdated: formattedTimestamp  
+          lastUpdated: formattedTimestamp 
         });  
       } else {  
         // Yeni döküman oluştur  
         await testResultsRef.set({  
             firstName: selectedUser.firstName,  
             lastName: selectedUser.lastName,  
+            userId: selectedUser.id,
           results: {  
             [selectedTest]: [newTestValue]  
           },  
