@@ -36,7 +36,6 @@ const TEST_TYPES = [
   { value: 'IgG4', label: 'IgG4' }  
 ];  
 
-// Interfaces  
 interface TestValue {  
   id: string;  
   value: number;  
@@ -317,6 +316,7 @@ const styles = StyleSheet.create({
   dropdownItemStyle: {  
     width: '100%',  
     paddingHorizontal: 15,  
+    
     paddingVertical: 10,  
   },  
   dropdownItemTxtStyle: {  
