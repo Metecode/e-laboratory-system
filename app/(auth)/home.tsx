@@ -81,15 +81,8 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* {userDetails.photo && (
-        <Image
-          source={{ uri: userDetails.photo }}
-          style={styles.profileImage}
-        />
-      )} */}
       <Text style={styles.title}>Welcome {userDetails.firstName} 🙏</Text>
       <View style={styles.detailsContainer}>
-        <Text>Email: {userDetails.email}</Text>
         <Text>First Name: {userDetails.firstName}</Text>
       </View>
       <TouchableOpacity 
