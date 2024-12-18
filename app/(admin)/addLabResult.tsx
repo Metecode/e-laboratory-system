@@ -15,7 +15,6 @@ import { Feather } from '@expo/vector-icons';
 import uuid from 'react-native-uuid';  
 
 // Tarih formatını düzenleyen yardımcı fonksiyon 
-// ss 
 const formatDate = (date: Date): string => {  
   const day = date.getDate().toString().padStart(2, '0');  
   const month = (date.getMonth() + 1).toString().padStart(2, '0');  
@@ -41,7 +40,8 @@ interface TestValue {
   id: string;  
   value: number;  
   unit: string;  
-  test_date: string;  
+  test_date: string;
+  age: string;
 }  
 
 interface TestResults {  
@@ -52,7 +52,7 @@ interface User {
   id: string;  
   firstName: string;  
   lastName: string;  
-  birthDate?: string;  
+  age?: string;
 }  
 
 export default function AddTestResultScreen() {  
@@ -117,10 +117,11 @@ export default function AddTestResultScreen() {
 
       // Yeni test sonucu  
       const newTestValue: TestValue = {  
-        id: uuid.v4().toString(),  
+        id: uuid.v4().toString(), 
         value: numericValue,  
         unit: 'mg/dL',  
         test_date: formattedTimestamp,  
+        age: selectedUser.age || '',
       };  
 
       // Kullanıcının test sonuçları dokümanını al  
@@ -148,14 +149,16 @@ export default function AddTestResultScreen() {
         await testResultsRef.update({  
           firstName: selectedUser.firstName,  
           lastName: selectedUser.lastName,  
+          userId: selectedUser.id, 
           results: updatedResults,  
-          lastUpdated: formattedTimestamp  
+          lastUpdated: formattedTimestamp 
         });  
       } else {  
         // Yeni döküman oluştur  
         await testResultsRef.set({  
             firstName: selectedUser.firstName,  
             lastName: selectedUser.lastName,  
+            userId: selectedUser.id,
           results: {  
             [selectedTest]: [newTestValue]  
           },  
@@ -313,6 +316,7 @@ const styles = StyleSheet.create({
   dropdownItemStyle: {  
     width: '100%',  
     paddingHorizontal: 15,  
+    
     paddingVertical: 10,  
   },  
   dropdownItemTxtStyle: {  
