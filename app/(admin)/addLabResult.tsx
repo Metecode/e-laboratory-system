@@ -6,15 +6,18 @@ import {
   TextInput,   
   TouchableOpacity,   
   ScrollView,   
-  Alert   
+  Alert,  
+  Platform  
 } from 'react-native';  
 import SelectDropdown from 'react-native-select-dropdown';  
 import firestore from '@react-native-firebase/firestore';  
+import DateTimePicker from '@react-native-community/datetimepicker';  
+import CheckBox from '@react-native-community/checkbox';  
 import auth from '@react-native-firebase/auth';  
 import { Feather } from '@expo/vector-icons';  
 import uuid from 'react-native-uuid';  
 
-// Tarih formatını düzenleyen yardımcı fonksiyon  
+// Tarih formatını düzenleyen yardımcı fonksiyon   
 const formatDate = (date: Date): string => {  
   const day = date.getDate().toString().padStart(2, '0');  
   const month = (date.getMonth() + 1).toString().padStart(2, '0');  
@@ -23,6 +26,18 @@ const formatDate = (date: Date): string => {
   const minutes = date.getMinutes().toString().padStart(2, '0');  
   
   return `${day}.${month}.${year} ${hours}:${minutes}`;  
+};  
+
+// Yaş hesaplama fonksiyonu  
+const calculateAge = (birthDate: Date, testDate: Date): number => {  
+  let age = testDate.getFullYear() - birthDate.getFullYear();  
+  const monthDiff = testDate.getMonth() - birthDate.getMonth();  
+  
+  if (monthDiff < 0 || (monthDiff === 0 && testDate.getDate() < birthDate.getDate())) {  
+    age--;  
+  }  
+  
+  return age;  
 };  
 
 // Test türleri  
@@ -40,8 +55,8 @@ interface TestValue {
   id: string;  
   value: number;  
   unit: string;  
-  test_date: string;
-  age: string;
+  test_date: string;  
+  age: string;  
 }  
 
 interface TestResults {  
@@ -52,7 +67,7 @@ interface User {
   id: string;  
   firstName: string;  
   lastName: string;  
-  age?: string;
+  birthDate?: string;  
 }  
 
 export default function AddTestResultScreen() {  
@@ -60,7 +75,11 @@ export default function AddTestResultScreen() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);  
   const [selectedTest, setSelectedTest] = useState('');  
   const [testValue, setTestValue] = useState('');  
-  const [patientAge, setPatientAge] = useState('');  
+  
+  // Eski tarihli tahlil için state'ler  
+  const [isOldTest, setIsOldTest] = useState(false);  
+  const [testDate, setTestDate] = useState(new Date());  
+  const [showDatePicker, setShowDatePicker] = useState(false);  
 
   // Kullanıcıları getir  
   useEffect(() => {  
@@ -102,6 +121,12 @@ export default function AddTestResultScreen() {
       return;  
     }  
 
+    // Kullanıcının doğum tarihini kontrol et  
+    if (isOldTest && !selectedUser.birthDate) {  
+      Alert.alert('Hata', 'Seçilen kullanıcının doğum tarihi bulunmamaktadır');  
+      return;  
+    }  
+
     // Convert string to number, allowing decimal values  
     const numericValue = parseFloat(testValue.replace(',', '.'));  
     
@@ -111,17 +136,25 @@ export default function AddTestResultScreen() {
     }  
 
     try {  
-      // Şu anki tarihi formatla  
-      const currentDate = new Date();  
+      // Tarih seçimi  
+      const currentDate = isOldTest ? testDate : new Date();  
       const formattedTimestamp = formatDate(currentDate);  
+
+      // Yaş hesaplama  
+      let calculatedAge = '';  
+      if (selectedUser.birthDate) {  
+        const birthDate = new Date(selectedUser.birthDate);  
+        const age = calculateAge(birthDate, currentDate);  
+        calculatedAge = age.toString();  
+      }  
 
       // Yeni test sonucu  
       const newTestValue: TestValue = {  
-        id: uuid.v4().toString(), 
+        id: uuid.v4().toString(),   
         value: numericValue,  
         unit: 'mg/dL',  
         test_date: formattedTimestamp,  
-        age: selectedUser.age || '',
+        age: calculatedAge,  
       };  
 
       // Kullanıcının test sonuçları dokümanını al  
@@ -149,16 +182,16 @@ export default function AddTestResultScreen() {
         await testResultsRef.update({  
           firstName: selectedUser.firstName,  
           lastName: selectedUser.lastName,  
-          userId: selectedUser.id, 
+          userId: selectedUser.id,   
           results: updatedResults,  
-          lastUpdated: formattedTimestamp 
+          lastUpdated: formattedTimestamp   
         });  
       } else {  
         // Yeni döküman oluştur  
         await testResultsRef.set({  
             firstName: selectedUser.firstName,  
             lastName: selectedUser.lastName,  
-            userId: selectedUser.id,
+            userId: selectedUser.id,  
           results: {  
             [selectedTest]: [newTestValue]  
           },  
@@ -173,12 +206,19 @@ export default function AddTestResultScreen() {
       setTestValue('');  
       setSelectedTest('');  
       setSelectedUser(null);  
-      setPatientAge('');  
+      setIsOldTest(false);  
+      setTestDate(new Date());  
     } catch (error) {  
       console.error('Test sonucu eklenirken hata:', error);  
       Alert.alert('Hata', 'Test sonucu eklenemedi');  
     }  
-  };
+  };  
+
+  const onDateChange = (event: any, selectedDate?: Date) => {  
+    const currentDate = selectedDate || testDate;  
+    setShowDatePicker(Platform.OS === 'ios');  
+    setTestDate(currentDate);  
+  };  
 
   return (  
     <ScrollView style={styles.container}>  
@@ -219,6 +259,44 @@ export default function AddTestResultScreen() {
           dropdownStyle={styles.dropdownMenuStyle}  
         />  
       </View>  
+
+      {/* Eski Tarihli Tahlil Checkbox */}  
+      <View style={styles.checkboxContainer}>  
+        <CheckBox  
+          disabled={false}  
+          value={isOldTest}  
+          onValueChange={(newValue:any) => setIsOldTest(newValue)}  
+        />  
+        <Text style={styles.checkboxLabel}>Eski Tarihli Tahlil</Text>  
+      </View>  
+
+      {/* Eski Tarihli Tahlil Tarihi Seçimi */}  
+      {isOldTest && (  
+        <View style={styles.inputContainer}>  
+          <Text style={styles.label}>Tahlil Tarihi</Text>  
+          <TouchableOpacity   
+            style={styles.datePickerButton}  
+            onPress={() => setShowDatePicker(true)}  
+          >  
+            <Text style={styles.datePickerButtonText}>  
+              {formatDate(testDate)}  
+            </Text>  
+          </TouchableOpacity>  
+
+          {showDatePicker && (  
+            <DateTimePicker  
+              testID="dateTimePicker"  
+              value={testDate}  
+              mode="date"  
+              is24Hour={true}  
+              display="default"  
+              onChange={onDateChange}  
+              maximumDate={new Date()}  
+            />  
+          )}  
+        </View>  
+      )}  
+      
       {/* Tahlil Türü Seçimi */}  
       <View style={styles.inputContainer}>  
         <Text style={styles.label}>Tahlil Türü</Text>  
@@ -275,7 +353,7 @@ export default function AddTestResultScreen() {
       </TouchableOpacity>  
     </ScrollView>  
   );  
-}  
+} 
 
 
 const styles = StyleSheet.create({  
@@ -348,5 +426,25 @@ const styles = StyleSheet.create({
     fontSize: 16,  
     fontWeight: 'bold',  
     marginLeft: 10,  
+  } ,
+  checkboxContainer: {  
+    flexDirection: 'row',  
+    alignItems: 'center',  
+    marginBottom: 20,  
+  },  
+  checkboxLabel: {  
+    marginLeft: 10,  
+    fontSize: 16,  
+  },  
+  datePickerButton: {  
+    backgroundColor: 'white',  
+    borderRadius: 10,  
+    padding: 15,  
+    borderWidth: 1,  
+    borderColor: '#ddd',  
+  },  
+  datePickerButtonText: {  
+    fontSize: 16,  
+    color: '#333',  
   }  
 });
