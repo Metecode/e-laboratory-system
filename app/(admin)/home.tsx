@@ -87,6 +87,10 @@ export default function HomeScreen() {
     router.push('/(admin)/addLabResult');  // Assumes you'll create this route  
   }; 
 
+  const navigateToAddGuidelineScreen = () => {  
+    router.push('/(admin)/addGuidelineScreen');  // Assumes you'll create this route  
+  }; 
+
   const dashboardItems = [
     {
       icon: <MaterialIcons name="people" size={24} color="#6a0dad" />,
@@ -152,6 +156,10 @@ export default function HomeScreen() {
           <TouchableOpacity style={styles.quickActionButton} onPress={navigateToAddTestResult}  >
             <MaterialIcons name="add-task" size={24} color="#6a0dad" />
             <Text style={styles.quickActionText}>Tahlil Ekle</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionButton} onPress={navigateToAddGuidelineScreen}  >
+            <MaterialIcons name="add-task" size={24} color="#6a0dad" />
+            <Text style={styles.quickActionText}>Kılavuz Ekle</Text>
           </TouchableOpacity>
         </View>
       </View>
