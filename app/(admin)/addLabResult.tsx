@@ -27,17 +27,18 @@ const formatDate = (date: Date): string => {
   return `${day.toString()}.${month.toString()}.${year.toString()} ${hours.toString()}:${minutes.toString()}`;
 };
 
+
 // Yaş hesaplama fonksiyonu  
-const calculateAge = (birthDate: Date, testDate: Date): number => {
-  let age = testDate.getFullYear() - birthDate.getFullYear();
-  const monthDiff = testDate.getMonth() - birthDate.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && testDate.getDate() < birthDate.getDate())) {
-    age--;
-  }
-
-  return age;
-};
+const calculateAge = (birthDate: Date, testDate: Date): number => {  
+  let age = testDate.getFullYear() - birthDate.getFullYear();  
+  const monthDiff = testDate.getMonth() - birthDate.getMonth();  
+  
+  if (monthDiff < 0 || (monthDiff === 0 && testDate.getDate() < birthDate.getDate())) {  
+    age--;  
+  }  
+  
+  return age;  
+};  
 
 // Test türleri  
 const TEST_TYPES = [
@@ -125,6 +126,12 @@ export default function AddTestResultScreen() {
       Alert.alert('Hata', 'Seçilen kullanıcının doğum tarihi bulunmamaktadır');
       return;
     }
+
+    // Kullanıcının doğum tarihini kontrol et  
+    if (isOldTest && !selectedUser.birthDate) {  
+      Alert.alert('Hata', 'Seçilen kullanıcının doğum tarihi bulunmamaktadır');  
+      return;  
+    }  
 
     // Convert string to number, allowing decimal values  
     const numericValue = parseFloat(testValue.replace(',', '.'));

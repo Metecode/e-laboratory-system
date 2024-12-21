@@ -38,7 +38,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'E-Laboratuvar Yönetim Paneli',
+          title: 'Ana Sayfa',
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
@@ -63,6 +63,17 @@ export default function AdminLayout() {
           title: 'Tahlil Sonuçları',
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="science" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Profile Tab */}
+      <Tabs.Screen
+        name="addGuidelineScreen"
+        options={{
+          title: 'Kılavuzlar',
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="book" size={size} color={color} />
           ),
         }}
       />
