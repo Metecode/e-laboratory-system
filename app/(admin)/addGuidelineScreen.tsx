@@ -11,7 +11,8 @@ const TEST_CATEGORIES = [
 
 interface GuidelineReference {  
     ageGroup: string;  
-    referenceValue: number;  
+    minValue: number;  
+    maxValue: number;  
 }  
 
 interface Guideline {  
@@ -21,15 +22,15 @@ interface Guideline {
 }  
 
 const ageGroups = [  
-    '0-30 gün', '1-5 ay', '6-8 ay', '9-12 ay', '13-24 ay',  
-    '25-36 ay', '37-48 ay', '49-72 ay', '7-8 yaş', '9-10 yaş',  
-    '11-12 yaş', '13-14 yaş', '15-16 yaş', '16 yaş ve üzeri'  
+    '0-1', '1-2', '2-3', '4-5', '5-6',  
+    '6-7', '7-8', '9-10',  
+    '11-12', '13-14', '15-16', '16+'  
 ];  
 
 export default function AddGuidelineScreen() {  
     const [guidelineName, setGuidelineName] = useState('');  
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);  
-    const [referenceValues, setReferenceValues] = useState<{ [key: string]: string }>({});  
+    const [referenceValues, setReferenceValues] = useState<{ [key: string]: { min: string; max: string } }>({});  
     const [guidelines, setGuidelines] = useState<Guideline[]>([]);  
     const [modalVisible, setModalVisible] = useState(false);  
     const [detailModalVisible, setDetailModalVisible] = useState(false);  
@@ -77,15 +78,16 @@ export default function AddGuidelineScreen() {
         const references: GuidelineReference[] = [];  
 
         for (const ageGroup of ageGroups) {  
-            const referenceValue = referenceValues[ageGroup];  
-            if (!referenceValue) {  
-                Alert.alert('Hata', `${ageGroup} için referans değeri giriniz.`);  
+            const { min, max } = referenceValues[ageGroup] || { min: '', max: '' };  
+            if (!min || !max) {  
+                Alert.alert('Hata', `${ageGroup} için minimum ve maksimum referans değeri giriniz.`);  
                 return;  
             }  
 
             references.push({  
                 ageGroup,  
-                referenceValue: parseFloat(referenceValue)  
+                minValue: parseFloat(min),  
+                maxValue: parseFloat(max)  
             });  
         }  
 
@@ -195,40 +197,6 @@ export default function AddGuidelineScreen() {
                 )}  
             </View>  
 
-            {/* Kılavuz Detay Modal */}  
-            <Modal  
-                animationType="slide"  
-                transparent={true}  
-                visible={detailModalVisible}  
-                onRequestClose={() => setDetailModalVisible(false)}  
-            >  
-                <View style={styles.modalContainer}>  
-                    <View style={styles.modalContent}>  
-                        <Text style={styles.modalTitle}>Kılavuz Detayları</Text>  
-                        {selectedGuideline && (  
-                            <ScrollView style={styles.detailContainer}>  
-                                <Text style={styles.detailHeaderText}>  
-                                    {selectedGuideline.name}   
-                                    <Text style={styles.detailCategoryText}> ({selectedGuideline.category})</Text>  
-                                </Text>  
-                                {selectedGuideline.references.map((ref, index) => (  
-                                    <View key={index} style={styles.referenceItem}>  
-                                        <Text style={styles.referenceAgeGroup}>{ref.ageGroup}</Text>  
-                                        <Text style={styles.referenceValue}>{ref.referenceValue}</Text>  
-                                    </View>  
-                                ))}  
-                            </ScrollView>  
-                        )}  
-                        <TouchableOpacity   
-                            style={styles.closeDetailButton}   
-                            onPress={() => setDetailModalVisible(false)}  
-                        >  
-                            <Text style={styles.closeDetailButtonText}>Kapat</Text>  
-                        </TouchableOpacity>  
-                    </View>  
-                </View>  
-            </Modal>  
-
             {/* Kılavuz Ekleme Modal */}  
             <Modal  
                 animationType="slide"  
@@ -249,14 +217,23 @@ export default function AddGuidelineScreen() {
                             <View style={styles.ageGroupContainer}>  
                                 {ageGroups.map((ageGroup) => (  
                                     <View key={ageGroup} style={styles.ageGroupInput}>  
-                                        <Text style={styles.ageGroupLabel}>{ageGroup}</Text>  
-                                        <TextInput  
-                                            style={styles.input}  
-                                            value={referenceValues[ageGroup]}  
-                                            onChangeText={(value) => setReferenceValues({ ...referenceValues, [ageGroup]: value })}  
-                                            placeholder="Referans Değeri"  
-                                            keyboardType="numeric"  
-                                        />  
+                                        <Text style={styles.ageGroupLabel}>{ageGroup} Yaş</Text>  
+                                        <View style={styles.referenceInputContainer}>  
+                                            <TextInput  
+                                                style={styles.input}  
+                                                value={referenceValues[ageGroup]?.min}  
+                                                onChangeText={(value) => setReferenceValues({ ...referenceValues, [ageGroup]: { ...referenceValues[ageGroup], min: value } })}  
+                                                placeholder="Min Değer"  
+                                                keyboardType="numeric"  
+                                            />  
+                                            <TextInput  
+                                                style={styles.input}  
+                                                value={referenceValues[ageGroup]?.max}  
+                                                onChangeText={(value) => setReferenceValues({ ...referenceValues, [ageGroup]: { ...referenceValues[ageGroup], max: value } })}  
+                                                placeholder="Max Değer"  
+                                                keyboardType="numeric"  
+                                            />  
+                                        </View>  
                                     </View>  
                                 ))}  
                             </View>  
@@ -272,10 +249,45 @@ export default function AddGuidelineScreen() {
                     </View>  
                 </View>  
             </Modal>  
+
+            {/* Kılavuz Detay Modal */}  
+            <Modal  
+                animationType="slide"  
+                transparent={true}  
+                visible={detailModalVisible}  
+                onRequestClose={() => setDetailModalVisible(false)}  
+            >  
+                <View style={styles.modalContainer}>  
+                    <View style={styles.modalContent}>  
+                        <Text style={styles.modalTitle}>Kılavuz Detayları</Text>  
+                        {selectedGuideline && (  
+                            <ScrollView style={styles.detailContainer}>  
+                                <Text style={styles.detailHeaderText}>  
+                                    {selectedGuideline.name}   
+                                    <Text style={styles.detailCategoryText}> ({selectedGuideline.category})</Text>  
+                                </Text>  
+                                {selectedGuideline.references.map((ref, index) => (  
+                                    <View key={index} style={styles.referenceItem}>  
+                                        <Text style={styles.referenceAgeGroup}>{ref.ageGroup}</Text>  
+                                        <Text style={styles.referenceValue}>Min: {ref.minValue}, Max: {ref.maxValue}</Text>  
+                                    </View>  
+                                ))}  
+                            </ScrollView>  
+                        )}  
+                        <TouchableOpacity   
+                            style={styles.closeDetailButton}   
+                            onPress={() => setDetailModalVisible(false)}  
+                        >  
+                            <Text style={styles.closeDetailButtonText}>Kapat</Text>  
+                        </TouchableOpacity>  
+                    </View>  
+                </View>  
+            </Modal>  
         </ScrollView>  
     );  
 }  
-const styles = StyleSheet.create({
+
+const styles = StyleSheet.create({  
     container: {  
         flex: 1,  
         padding: 20,  
@@ -295,10 +307,11 @@ const styles = StyleSheet.create({
         maxHeight: '80%', // Modal yüksekliğini sınırla  
     },  
     modalTitle: {  
-        fontSize: 20,  
+        fontSize: 24,  
         fontWeight: 'bold',  
-        marginBottom: 10,  
+        marginBottom: 20,  
         textAlign: 'center',  
+        color: '#6a0dad',  
     },  
     detailHeaderText: {  
         fontSize: 18,  
@@ -338,6 +351,82 @@ const styles = StyleSheet.create({
     closeDetailButtonText: {  
         color: 'white',  
         fontWeight: 'bold',  
+    },  
+    ageGroupContainer: {  
+        marginVertical: 10,  
+    },  
+    ageGroupInput: {  
+        marginBottom: 15,  
+    },  
+    referenceInputContainer: {  
+        flexDirection: 'row',  
+        justifyContent: 'space-between',  
+        marginTop: 5,  
+    },  
+    input: {  
+        borderWidth: 1,  
+        borderColor: '#ccc',  
+        borderRadius: 5,  
+        padding: 10,  
+        marginVertical: 5,  
+        flex: 1,  
+        marginRight: 10,  
+    },  
+    buttonContainer: {  
+        flexDirection: 'row',  
+        justifyContent: 'space-between',  
+        marginTop: 20,  
+    },  
+    saveButton: {  
+        backgroundColor: '#6a0dad',  
+        padding: 15,  
+        borderRadius: 10,  
+        flex: 1,  
+        marginRight: 10,  
+    },  
+    saveButtonText: {  
+        color: 'white',  
+        fontWeight: 'bold',  
+        textAlign: 'center',  
+    },  
+    closeButton: {  
+        backgroundColor: '#ccc',  
+        padding: 15,  
+        borderRadius: 10,  
+        flex: 1,  
+    },  
+    closeButtonText: {  
+        color: 'black',  
+        fontWeight: 'bold',  
+        textAlign: 'center',  
+    },  
+    guidelineListContainer: {  
+        marginTop: 20,  
+    },  
+    guidelineItem: {  
+        flexDirection: 'row',  
+        backgroundColor: 'white',  
+        padding: 15,  
+        borderRadius: 10,  
+        marginVertical: 5,  
+        alignItems: 'center',  
+        justifyContent: 'space-between',  
+    },  
+    guidelineTextContainer: {  
+        flex: 1,  
+    },  
+    guidelineTitle: {  
+        fontSize: 16,  
+        fontWeight: 'bold',  
+    },  
+    guidelineCategory: {  
+        fontSize: 14,  
+        color: '#6a0dad',  
+    },  
+    noGuidelinesText: {  
+        textAlign: 'center',  
+        color: '#888',  
+        marginTop: 20,  
     },
     title: {
         fontSize: 24,
@@ -354,15 +443,6 @@ const styles = StyleSheet.create({
         color: '#6a0dad',
         marginBottom: 10,
     },
-    input: {
-        backgroundColor: 'white',
-        borderRadius: 10,
-        padding: 15,
-        fontSize: 16,
-        borderWidth: 1,
-        borderColor: '#ddd',
-        marginBottom: 10,
-    },
     dropdownButton: {
         backgroundColor: 'white',
         borderRadius: 10,
@@ -374,18 +454,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#6a0dad',
     },
-    guidelineListContainer: {
-        marginBottom: 20,
-    },
     rangeItem: {
         backgroundColor: 'white',
         padding: 10,
         borderRadius: 5,
         marginVertical: 5,
-    },
-    noGuidelinesText: {
-        color: 'gray',
-        textAlign: 'center',
     },
     addButton: {
         backgroundColor: '#6a0dad',
@@ -399,49 +472,10 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
     },
-    ageGroupContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    ageGroupInput: {
-        width: '48%', // İki sütun için %48 genişlik  
-        marginBottom: 10,
-    },
     ageGroupLabel: {
         fontSize: 16,
         color: '#6a0dad',
         marginBottom: 5,
-    },
-    saveButton: {
-        backgroundColor: '#6a0dad',
-        padding: 10,
-        borderRadius: 5,
-        marginTop: 10,
-        width: '48%', // Buton genişliği  
-    },
-    saveButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    closeButton: {
-        backgroundColor: 'gray',
-        padding: 10,
-        borderRadius: 5,
-        marginTop: 10,
-        width: '48%', // Buton genişliği  
-    },
-    closeButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
     },
     scrollView: {
         width: '100%',
@@ -459,29 +493,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderRadius: 10,
     },
-    guidelineItem: {  
-        flexDirection: 'row',  
-        backgroundColor: 'white',  
-        padding: 15,  
-        borderRadius: 10,  
-        marginVertical: 5,  
-        alignItems: 'center',  
-        justifyContent: 'space-between',  
-    },  
-    guidelineTextContainer: {  
-        flex: 1,  
-        marginRight: 10,  
-    },  
-    guidelineTitle: {  
-        fontSize: 16,  
-        fontWeight: 'bold',  
-        color: '#333',  
-    },  
-    guidelineCategory: {  
-        fontSize: 14,  
-        color: '#6a0dad',  
-        fontWeight: 'normal',  
-    },  
     detailButton: {  
         backgroundColor: '#6a0dad',  
         padding: 10,  

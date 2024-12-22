@@ -67,7 +67,7 @@ export default function HomeScreen() {
         setGuidelineCount(totalGuidelines);  
         setCompletedTestCount(totalCompletedTests); // Set the total completed tests count  
       } else {  
-        console.log("No user document found in Firestore");  
+        // console.log("No user document found in Firestore");  
       }  
     } catch (error) {  
       console.error("Error fetching user data:", error);  
