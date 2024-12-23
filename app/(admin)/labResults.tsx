@@ -1,189 +1,230 @@
-import React, { useState, useEffect } from 'react';  
-import {  
-  View,  
-  Text,  
-  StyleSheet,  
-  FlatList,  
-  TouchableOpacity,  
-  TextInput,  
-  ActivityIndicator  
-} from 'react-native';  
-import firestore from '@react-native-firebase/firestore';  
-import { Feather } from '@expo/vector-icons';  
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator } from 'react-native';
+import firestore from '@react-native-firebase/firestore';
+import SelectDropdown from 'react-native-select-dropdown';
 
-interface TestResult {  
-  id: string;  
-  value: number;  
-  unit: string;  
-  test_date: string;  
+interface TestResult {
+  id: string;
+  value: number;
+  unit: string;
+  test_date: string;
   age: number;
-}  
+}
 
-interface UserTestResults {  
-  id: string; // Firestore döküman ID'si  
-  firstName: string;  
-  lastName: string;  
-  results: {  
-    [key: string]: TestResult[];  
-  };  
-  lastUpdated: string;  
-}  
+interface UserTestResults {
+  id: string;
+  firstName: string;
+  lastName: string;
+  results: {
+    [key: string]: TestResult[];
+  };
+  lastUpdated: string;
+}
 
-const LabResults = () => {  
-  const [testResults, setTestResults] = useState<UserTestResults[]>([]);  
-  const [loading, setLoading] = useState(true);  
-  const [searchText, setSearchText] = useState('');  
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'age' | 'name'>('all');  
+interface Reference {
+  ageGroup: string;
+  minValue: number;
+  maxValue: number;
+}
 
-  useEffect(() => {  
-    fetchTestResults();  
-  }, []);  
+interface Guideline {
+  category: string;
+  name?: string;
+  references: Reference[];
+}
 
-  const fetchTestResults = async () => {  
-    try {  
-      const snapshot = await firestore()  
-        .collection('test_results')  
-        .get();  
+const LabResults = () => {
+  const [testResults, setTestResults] = useState<UserTestResults[]>([]);
+  const [guidelines, setGuidelines] = useState<Guideline[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserTestResults | null>(null);
+  const [selectedGuideline, setSelectedGuideline] = useState<Guideline | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState('');
 
-      const results = snapshot.docs.map(doc => ({  
-        id: doc.id, // Döküman ID'sini ekledik  
-        ...doc.data()  
-      })) as UserTestResults[];  
+  useEffect(() => {
+    fetchTestResults();
+    fetchGuidelines();
+  }, []);
 
-      setTestResults(results);  
-      setLoading(false);  
-    } catch (error) {  
-      console.error('Error fetching results:', error);  
-      setLoading(false);  
-    }  
-  };  
+  const fetchTestResults = async () => {
+    try {
+      const snapshot = await firestore()
+        .collection('test_results')
+        .get();
 
-  const getChangeIndicator = (currentValue: number, previousValue: number) => {  
-    if (currentValue > previousValue) return '↑';  
-    if (currentValue < previousValue) return '↓';  
-    return '↔';  
-  };  
+      const results = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as UserTestResults[];
 
-  const filterResults = () => {  
-    let filtered = [...testResults];  
+      setTestResults(results);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching results:', error);
+      setLoading(false);
+    }
+  };
 
-    if (searchText) {  
-      switch (selectedFilter) {  
-        case 'age':  
-          filtered = filtered.filter(result => {  
-            const hasAgeMatch = Object.values(result.results).some(testArray =>  
-              testArray.some(test => test.age.toString() === searchText)  
-            );  
-            return hasAgeMatch;  
-          });  
-          break;  
-        case 'name':  
-          filtered = filtered.filter(result =>  
-            `${result.firstName} ${result.lastName}`  
-              .toLowerCase()  
-              .includes(searchText.toLowerCase())  
-          );  
-          break;  
-      }  
-    }  
+  const fetchGuidelines = async () => {
+    try {
+      const snapshot = await firestore()
+        .collection('guidelines')
+        .get();
 
-    return filtered;  
-  };  
+      const guidelinesArray: Guideline[] = snapshot.docs.flatMap(doc => {
+        const data = doc.data();
+        return data.guidelines.map(guideline => ({
+          name: guideline.name,
+          category: guideline.category,
+          references: guideline.references || []
+        }));
+      });
 
-  const renderTestItem = ({ item }: { item: UserTestResults }) => {  
-    return (  
-      <View style={styles.resultCard}>  
-        <Text style={styles.patientName}>  
-          {item.firstName} {item.lastName}  
-        </Text>  
-        
-        {Object.entries(item.results).map(([testType, values]) => {  
-          const sortedValues = [...values].sort((a, b) =>   
-            new Date(b.test_date).getTime() - new Date(a.test_date).getTime()  
-          );  
-          
-          const currentValue = sortedValues[0];  
-          const previousValue = sortedValues[1];  
-          
-          return (  
-            <View key={`${item.id}-${testType}`} style={styles.testRow}>  
-              <Text style={styles.testType}>{testType}:</Text>  
-              <Text style={styles.testValue}>  
-                {currentValue.value} {currentValue.unit}  
-                {previousValue && (  
-                  <Text style={styles.changeIndicator}>  
-                    {' '}{getChangeIndicator(currentValue.value, previousValue.value)}  
-                  </Text>  
-                )}  
-              </Text>  
-              <Text style={styles.testDate}>{currentValue.test_date}</Text>  
-              <Text style={styles.patientAge}>Yaş: {currentValue.age}</Text>  
-            </View>  
-          );  
-        })}  
-      </View>  
-    );  
-  };  
+      setGuidelines(guidelinesArray);
+    } catch (error) {
+      console.error('Error fetching guidelines:', error);
+    }
+  };
 
-  // Benzersiz key sağlayan keyExtractor  
-  const keyExtractor = (item: UserTestResults) => item.id;  
+  const getComparisonIndicator = (value: number, minValue: number, maxValue: number) => {
+    if (value < minValue) return '↓';
+    if (value > maxValue) return '↑';
+    return '↔';
+  };
 
-  if (loading) {  
-    return (  
-      <View style={styles.centerContainer}>  
-        <ActivityIndicator size="large" color="#0066cc" />  
-      </View>  
-    );  
-  }  
+  const renderTestItem = ({ item }: { item: UserTestResults }) => {
+    return (
+      <View style={styles.resultCard}>
+        <Text style={styles.patientName}>
+          {item.firstName} {item.lastName}
+        </Text>
 
-  return (  
-    <View style={styles.container}>  
-      <View style={styles.searchContainer}>  
-        <TextInput  
-          style={styles.searchInput}  
-          placeholder="Ara..."  
-          value={searchText}  
-          onChangeText={setSearchText}  
-        />  
-        <View style={styles.filterButtons}>  
-          <TouchableOpacity  
-            style={[  
-              styles.filterButton,  
-              selectedFilter === 'all' && styles.filterButtonActive  
-            ]}  
-            onPress={() => setSelectedFilter('all')}  
-          >  
-            <Text>Tümü</Text>  
-          </TouchableOpacity>  
-          <TouchableOpacity  
-            style={[  
-              styles.filterButton,  
-              selectedFilter === 'age' && styles.filterButtonActive  
-            ]}  
-            onPress={() => setSelectedFilter('age')}  
-          >  
-            <Text>Yaşa Göre</Text>  
-          </TouchableOpacity>  
-          <TouchableOpacity  
-            style={[  
-              styles.filterButton,  
-              selectedFilter === 'name' && styles.filterButtonActive  
-            ]}  
-            onPress={() => setSelectedFilter('name')}  
-          >  
-            <Text>İsme Göre</Text>  
-          </TouchableOpacity>  
-        </View>  
-      </View>  
+        {Object.entries(item.results).map(([testType, values]) => {
+          const sortedValues = [...values].sort((a, b) =>
+            new Date(b.test_date).getTime() - new Date(a.test_date).getTime()
+          );
 
-      <FlatList  
-        data={filterResults()}  
-        renderItem={renderTestItem}  
-        keyExtractor={keyExtractor} // Benzersiz key sağlayan keyExtractor  
-        contentContainerStyle={styles.listContainer}  
-      />  
-    </View>  
-  );  
+          const currentValue = sortedValues[0];
+
+          // Seçilen kılavuzdan referans değerlerini al  
+          const referenceValues = selectedGuideline ? selectedGuideline.references : [];
+
+          return (
+            <View key={`${item.id}-${testType}`} style={styles.testRow}>
+              <Text style={styles.testType}>{testType}:</Text>
+
+              {/* Kılavuz Seçimi */}
+              <SelectDropdown
+                data={guidelines.map(g => g.category)} // Kılavuz kategorilerini al  
+                onSelect={(selectedCategory) => {
+                  const selectedGuidelineData = guidelines.find(g => g.category === selectedCategory);
+                  setSelectedGuideline(selectedGuidelineData || null);
+                }}
+                renderButton={(selectedItem) => (
+                  <View style={styles.referenceDropdown}>
+                    <Text style={styles.referenceDropdownText}>
+                      {selectedItem || 'Kılavuz Seç'}
+                    </Text>
+                  </View>
+                )}
+                renderItem={(item, index, isSelected) => (
+                  <View style={[
+                    styles.referenceDropdownItem,
+                    isSelected && { backgroundColor: '#D2D9DF' }
+                  ]}>
+                    <Text>{item}</Text>
+                  </View>
+                )}
+              />
+
+              {/* Referans Değeri Gösterimi */}
+              {selectedGuideline && (
+                <View>
+                  <Text style={styles.referenceRangeTitle}>
+                    Kılavuz: {selectedGuideline.name}
+                  </Text>
+                  {selectedGuideline.references
+                    .filter(ref => {
+                      // Yaş aralığını parse et  
+                      const [minAge, maxAge] = ref.ageGroup.split('-').map(age => parseInt(age.trim()));
+                      return currentValue.age >= minAge && currentValue.age <= maxAge;
+                    })
+                    .map(ref => (
+                      <Text key={ref.ageGroup} style={styles.referenceRange}>
+                        Yaş Aralığı {ref.ageGroup}: Min {ref.minValue} - Max {ref.maxValue}
+                      </Text>
+                    ))
+                  }
+                </View>
+              )}
+
+              <Text style={styles.testValue}>
+                {currentValue.value} {currentValue.unit}
+                <Text style={styles.changeIndicator}>
+                  {' '}{getComparisonIndicator(currentValue.value,
+                    referenceValues.find(ref => ref.ageGroup === currentValue.age.toString())?.minValue || 0,
+                    referenceValues.find(ref => ref.ageGroup === currentValue.age.toString())?.maxValue || 0)}
+                </Text>
+              </Text>
+
+              <Text style={styles.testDate}>{currentValue.test_date}</Text>
+              <Text style={styles.patientAge}>Yaş: {currentValue.age}</Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#0066cc" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Kullanıcı Ara..."
+          value={searchText}
+          onChangeText={setSearchText}
+        />
+        <SelectDropdown
+          data={testResults.filter(user =>
+            `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchText.toLowerCase())
+          )}
+          onSelect={(selectedItem) => setSelectedUser(selectedItem)}
+          renderButton={(selectedItem) => (
+            <View style={styles.userDropdown}>
+              <Text style={styles.userDropdownText}>
+                {selectedItem
+                  ? `${selectedItem.firstName} ${selectedItem.lastName}`
+                  : 'Kullanıcı Seç'}
+              </Text>
+            </View>
+          )}
+          renderItem={(item, index, isSelected) => (
+            <View style={[
+              styles.userDropdownItem,
+              isSelected && { backgroundColor: '#D2D9DF' }
+            ]}>
+              <Text>{item.firstName} {item.lastName}</Text>
+            </View>
+          )}
+        />
+      </View>
+
+      <FlatList
+        data={selectedUser ? [selectedUser] : testResults}
+        renderItem={renderTestItem}
+        keyExtractor={(item) => item.id}
+      />
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -209,27 +250,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 10,
   },
-  filterButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  filterButton: {
-    padding: 8,
+  userDropdown: {
+    margin: 10,
+    padding: 10,
+    backgroundColor: 'white',
     borderRadius: 8,
-    backgroundColor: '#eee',
   },
-  filterButtonActive: {
-    backgroundColor: '#0066cc',
+  userDropdownText: {
+    textAlign: 'center',
   },
-  listContainer: {
+  userDropdownItem: {
     padding: 10,
   },
   resultCard: {
     backgroundColor: 'white',
+    margin: 10,
     padding: 15,
     borderRadius: 8,
-    marginBottom: 10,
-    elevation: 2,
   },
   patientName: {
     fontSize: 18,
@@ -237,31 +274,44 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   testRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-    flexWrap: 'wrap',
+    marginBottom: 10,
   },
   testType: {
-    fontWeight: '500',
-    width: 80,
+    fontWeight: 'bold',
+  },
+  referenceDropdown: {
+    backgroundColor: '#f0f0f0',
+    padding: 8,
+    borderRadius: 6,
+    marginVertical: 5,
+  },
+  referenceDropdownText: {
+    textAlign: 'center',
+  },
+  referenceDropdownItem: {
+    padding: 10,
+  },
+  referenceRange: {
+    color: '#666',
+    marginVertical: 5,
   },
   testValue: {
-    marginRight: 10,
+    fontSize: 16,
   },
   changeIndicator: {
     fontWeight: 'bold',
-    fontSize: 16,
+    color: 'green',
   },
   testDate: {
-    color: '#666',
-    fontSize: 12,
-    marginLeft: 'auto',
+    color: '#888',
   },
   patientAge: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 10,
+    color: '#888',
+  },
+  referenceRangeTitle: {
+    color: '#333',
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
 });
 
