@@ -92,88 +92,92 @@ const LabResults = () => {
     return '↔';
   };
 
-  const renderTestItem = ({ item }: { item: UserTestResults }) => {
-    return (
-      <View style={styles.resultCard}>
-        <Text style={styles.patientName}>
-          {item.firstName} {item.lastName}
-        </Text>
-
-        {Object.entries(item.results).map(([testType, values]) => {
-          const sortedValues = [...values].sort((a, b) =>
-            new Date(b.test_date).getTime() - new Date(a.test_date).getTime()
-          );
-
-          const currentValue = sortedValues[0];
-
-          // Seçilen kılavuzdan referans değerlerini al  
-          const referenceValues = selectedGuideline ? selectedGuideline.references : [];
-
-          return (
-            <View key={`${item.id}-${testType}`} style={styles.testRow}>
-              <Text style={styles.testType}>{testType}:</Text>
-
-              {/* Kılavuz Seçimi */}
-              <SelectDropdown
-                data={guidelines.map(g => g.category)} // Kılavuz kategorilerini al  
-                onSelect={(selectedCategory) => {
-                  const selectedGuidelineData = guidelines.find(g => g.category === selectedCategory);
-                  setSelectedGuideline(selectedGuidelineData || null);
-                }}
-                renderButton={(selectedItem) => (
-                  <View style={styles.referenceDropdown}>
-                    <Text style={styles.referenceDropdownText}>
-                      {selectedItem || 'Kılavuz Seç'}
-                    </Text>
-                  </View>
-                )}
-                renderItem={(item, index, isSelected) => (
-                  <View style={[
-                    styles.referenceDropdownItem,
-                    isSelected && { backgroundColor: '#D2D9DF' }
-                  ]}>
-                    <Text>{item}</Text>
-                  </View>
-                )}
-              />
-
-              {/* Referans Değeri Gösterimi */}
-              {selectedGuideline && (
-                <View>
-                  <Text style={styles.referenceRangeTitle}>
-                    Kılavuz: {selectedGuideline.name}
-                  </Text>
-                  {selectedGuideline.references
-                    .filter(ref => {
-                      // Yaş aralığını parse et  
-                      const [minAge, maxAge] = ref.ageGroup.split('-').map(age => parseInt(age.trim()));
-                      return currentValue.age >= minAge && currentValue.age <= maxAge;
-                    })
-                    .map(ref => (
-                      <Text key={ref.ageGroup} style={styles.referenceRange}>
-                        Yaş Aralığı {ref.ageGroup}: Min {ref.minValue} - Max {ref.maxValue}
-                      </Text>
-                    ))
-                  }
-                </View>
-              )}
-
-              <Text style={styles.testValue}>
-                {currentValue.value} {currentValue.unit}
-                <Text style={styles.changeIndicator}>
-                  {' '}{getComparisonIndicator(currentValue.value,
-                    referenceValues.find(ref => ref.ageGroup === currentValue.age.toString())?.minValue || 0,
-                    referenceValues.find(ref => ref.ageGroup === currentValue.age.toString())?.maxValue || 0)}
-                </Text>
-              </Text>
-
-              <Text style={styles.testDate}>{currentValue.test_date}</Text>
-              <Text style={styles.patientAge}>Yaş: {currentValue.age}</Text>
-            </View>
-          );
-        })}
-      </View>
-    );
+  const renderTestItem = ({ item }: { item: UserTestResults }) => {  
+    return (  
+      <View style={styles.resultCard}>  
+        <Text style={styles.patientName}>  
+          {item.firstName} {item.lastName}  
+        </Text>  
+  
+        {Object.entries(item.results).map(([testType, values]) => {  
+          const sortedValues = [...values].sort((a, b) =>  
+            new Date(b.test_date).getTime() - new Date(a.test_date).getTime()  
+          );  
+  
+          const currentValue = sortedValues[0];  
+  
+          // Referans değerini bul (16 yaş üstü için "+16" kontrolü)  
+          const referenceValue = selectedGuideline?.references.find(ref => {  
+            const ageGroups = ref.ageGroup.split('-').map(age => age.trim());  
+            
+            if (ageGroups[0] === '16+') {  
+              return currentValue.age > 16;  
+            }  
+            
+            if (ageGroups.length === 1) {  
+              return currentValue.age === parseInt(ageGroups[0]);  
+            } else if (ageGroups.length === 2) {  
+              return currentValue.age >= parseInt(ageGroups[0]) &&   
+                     currentValue.age <= parseInt(ageGroups[1]);  
+            }  
+            
+            return false;  
+          });  
+  
+          return (  
+            <View key={`${item.id}-${testType}`} style={styles.testRow}>  
+              <Text style={styles.testType}>{testType}:</Text>  
+  
+              {/* Kılavuz Seçimi */}  
+              <SelectDropdown  
+                data={guidelines.map(g => g.category)}   
+                onSelect={(selectedCategory) => {  
+                  const selectedGuidelineData = guidelines.find(g => g.category === selectedCategory);  
+                  setSelectedGuideline(selectedGuidelineData || null);  
+                }}  
+                renderButton={(selectedItem) => (  
+                  <View style={styles.referenceDropdown}>  
+                    <Text style={styles.referenceDropdownText}>  
+                      {selectedItem || 'Kılavuz Seç'}  
+                    </Text>  
+                  </View>  
+                )}  
+                renderItem={(item, index, isSelected) => (  
+                  <View style={[  
+                    styles.referenceDropdownItem,  
+                    isSelected && { backgroundColor: '#D2D9DF' }  
+                  ]}>  
+                    <Text>{item}</Text>  
+                  </View>  
+                )}  
+              />  
+  
+              {/* Referans Değeri Gösterimi */}  
+              {selectedGuideline && referenceValue && (  
+                <Text style={styles.referenceRange}>  
+                  {selectedGuideline.name} Referans Aralığı ({referenceValue.ageGroup} yaş):   
+                  Min {referenceValue.minValue} - Max {referenceValue.maxValue}  
+                </Text>  
+              )}  
+  
+              <Text style={styles.testValue}>  
+                {currentValue.value} {currentValue.unit}  
+                <Text style={styles.changeIndicator}>  
+                  {' '}{getComparisonIndicator(  
+                    currentValue.value,  
+                    referenceValue?.minValue || 0,  
+                    referenceValue?.maxValue || 0  
+                  )}  
+                </Text>  
+              </Text>  
+  
+              <Text style={styles.testDate}>{currentValue.test_date}</Text>  
+              <Text style={styles.patientAge}>Yaş: {currentValue.age}</Text>  
+            </View>  
+          );  
+        })}  
+      </View>  
+    );  
   };
 
   if (loading) {
