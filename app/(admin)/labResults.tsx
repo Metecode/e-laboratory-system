@@ -37,9 +37,53 @@ const LabResults = () => {
   const [testResults, setTestResults] = useState<UserTestResults[]>([]);
   const [guidelines, setGuidelines] = useState<Guideline[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserTestResults | null>(null);
-  const [selectedGuideline, setSelectedGuideline] = useState<Guideline | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+// Her test türü için ayrı bir selectedGuideline tutacağız  
+const [selectedGuidelines, setSelectedGuidelines] = useState<{  
+  [testType: string]: Guideline | null;  
+}>({});  
+
+useEffect(() => {  
+  const fetchData = async () => {  
+    try {  
+      // Guidelines'ı önce yükle  
+      const guidelinesSnapshot = await firestore()  
+        .collection('guidelines')  
+        .get();  
+
+      const guidelinesData = guidelinesSnapshot.docs.flatMap(doc => {  
+        const data = doc.data();  
+        return data.guidelines.map(guideline => ({  
+          name: guideline.name,  
+          category: guideline.category,  
+          references: guideline.references || []  
+        }));  
+      });  
+
+      setGuidelines(guidelinesData);  
+      console.log('Loaded Guidelines:', guidelinesData);  
+
+      // Sonra test sonuçlarını yükle  
+      const resultsSnapshot = await firestore()  
+        .collection('test_results')  
+        .get();  
+
+      const results = resultsSnapshot.docs.map(doc => ({  
+        id: doc.id,  
+        ...doc.data()  
+      })) as UserTestResults[];  
+
+      setTestResults(results);  
+      setLoading(false);  
+    } catch (error) {  
+      console.error('Error fetching data:', error);  
+      setLoading(false);  
+    }  
+  };  
+
+  fetchData();  
+}, []);  
 
   useEffect(() => {
     fetchTestResults();
@@ -100,45 +144,63 @@ const LabResults = () => {
         </Text>  
   
         {Object.entries(item.results).map(([testType, values]) => {  
-          const sortedValues = [...values].sort((a, b) =>  
-            new Date(b.test_date).getTime() - new Date(a.test_date).getTime()  
-          );  
+          const sortedValues = [...values].sort((a, b) => {  
+            const parseDateTime = (dateTimeString: string) => {  
+              const [datePart, timePart] = dateTimeString.split(' ');  
+              const [day, month, year] = datePart.split('.');  
+              const [hours = '0', minutes = '0'] = (timePart || '00:00').split(':');  
+              
+              return new Date(  
+                parseInt(year),   
+                parseInt(month) - 1,   
+                parseInt(day),   
+                parseInt(hours),   
+                parseInt(minutes)  
+              );  
+            };  
+          
+            const dateA = parseDateTime(a.test_date);  
+            const dateB = parseDateTime(b.test_date);  
+          
+            return dateB.getTime() - dateA.getTime();  
+          });   
   
           const currentValue = sortedValues[0];  
   
-          // Referans değerini bul (16 yaş üstü için "+16" kontrolü)  
-          const referenceValue = selectedGuideline?.references.find(ref => {  
-            const ageGroups = ref.ageGroup.split('-').map(age => age.trim());  
-            
-            if (ageGroups[0] === '16+') {  
-              return currentValue.age > 16;  
-            }  
-            
-            if (ageGroups.length === 1) {  
-              return currentValue.age === parseInt(ageGroups[0]);  
-            } else if (ageGroups.length === 2) {  
-              return currentValue.age >= parseInt(ageGroups[0]) &&   
-                     currentValue.age <= parseInt(ageGroups[1]);  
-            }  
-            
-            return false;  
-          });  
+          // Debug için konsola yazdıralım  
+          console.log('Test Type:', testType);  
+          console.log('Available Guidelines:', guidelines);  
+          console.log('Selected Guidelines:', selectedGuidelines);  
   
           return (  
             <View key={`${item.id}-${testType}`} style={styles.testRow}>  
               <Text style={styles.testType}>{testType}:</Text>  
   
-              {/* Kılavuz Seçimi */}  
               <SelectDropdown  
-                data={guidelines.map(g => g.category)}   
-                onSelect={(selectedCategory) => {  
-                  const selectedGuidelineData = guidelines.find(g => g.category === selectedCategory);  
-                  setSelectedGuideline(selectedGuidelineData || null);  
+                data={guidelines}  
+                defaultValue={selectedGuidelines[testType]}  
+                defaultButtonText="Kılavuz Seç"  
+                onSelect={(selectedGuideline) => {  
+                  console.log('Selected Guideline:', selectedGuideline);  
+                  setSelectedGuidelines(prev => {  
+                    const newState = {  
+                      ...prev,  
+                      [testType]: selectedGuideline  
+                    };  
+                    console.log('New Selected Guidelines State:', newState);  
+                    return newState;  
+                  });  
+                }}  
+                buttonTextAfterSelection={(selectedItem) => {  
+                  return selectedItem.name || selectedItem.category;  
+                }}  
+                rowTextForSelection={(item) => {  
+                  return item.name || item.category;  
                 }}  
                 renderButton={(selectedItem) => (  
                   <View style={styles.referenceDropdown}>  
                     <Text style={styles.referenceDropdownText}>  
-                      {selectedItem || 'Kılavuz Seç'}  
+                      {selectedItem ? (selectedItem.name || selectedItem.category) : 'Kılavuz Seç'}  
                     </Text>  
                   </View>  
                 )}  
@@ -147,30 +209,50 @@ const LabResults = () => {
                     styles.referenceDropdownItem,  
                     isSelected && { backgroundColor: '#D2D9DF' }  
                   ]}>  
-                    <Text>{item}</Text>  
+                    <Text>{item.name || item.category}</Text>  
                   </View>  
                 )}  
               />  
   
-              {/* Referans Değeri Gösterimi */}  
-              {selectedGuideline && referenceValue && (  
-                <Text style={styles.referenceRange}>  
-                  {selectedGuideline.name} Referans Aralığı ({referenceValue.ageGroup} yaş):   
-                  Min {referenceValue.minValue} - Max {referenceValue.maxValue}  
-                </Text>  
+              {selectedGuidelines[testType] && (  
+                <View>  
+                  {/* Referans değerlerini göster */}  
+                  {selectedGuidelines[testType]?.references  
+                    .filter(ref => {  
+                      const ageGroups = ref.ageGroup.split('-').map(age => age.trim());  
+                      if (ageGroups[0] === '16+') {  
+                        return currentValue.age > 16;  
+                      }  
+                      if (ageGroups.length === 1) {  
+                        return currentValue.age === parseInt(ageGroups[0]);  
+                      }  
+                      return currentValue.age >= parseInt(ageGroups[0]) &&  
+                             currentValue.age <= parseInt(ageGroups[1]);  
+                    })  
+                    .map((referenceValue, index) => (  
+                      <Text key={index} style={styles.referenceRange}>  
+                        {selectedGuidelines[testType]?.name || selectedGuidelines[testType]?.category}   
+                        Referans Aralığı ({referenceValue.ageGroup} yaş):  
+                        Min {referenceValue.minValue} - Max {referenceValue.maxValue}  
+                      </Text>  
+                    ))  
+                  }  
+                </View>  
               )}  
   
               {/* Güncel Test Değeri */}  
               <View style={styles.currentTestContainer}>  
                 <Text style={styles.testValue}>  
                   {currentValue.value} {currentValue.unit}  
-                  <Text style={styles.changeIndicator}>  
-                    {' '}{getComparisonIndicator(  
-                      currentValue.value,  
-                      referenceValue?.minValue || 0,  
-                      referenceValue?.maxValue || 0  
-                    )}  
-                  </Text>  
+                  {selectedGuidelines[testType]?.references && (  
+                    <Text style={styles.changeIndicator}>  
+                      {' '}{getComparisonIndicator(  
+                        currentValue.value,  
+                        selectedGuidelines[testType]?.references[0]?.minValue || 0,  
+                        selectedGuidelines[testType]?.references[0]?.maxValue || 0  
+                      )}  
+                    </Text>  
+                  )}  
                 </Text>  
   
                 <Text style={styles.testDate}>{currentValue.test_date}</Text>  
@@ -374,5 +456,5 @@ const styles = StyleSheet.create({
     color: '#666',  
   },  
 });
-
+//deneme
 export default LabResults;
