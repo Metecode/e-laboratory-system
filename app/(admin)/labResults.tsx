@@ -160,25 +160,46 @@ const LabResults = () => {
                 </Text>  
               )}  
   
-              <Text style={styles.testValue}>  
-                {currentValue.value} {currentValue.unit}  
-                <Text style={styles.changeIndicator}>  
-                  {' '}{getComparisonIndicator(  
-                    currentValue.value,  
-                    referenceValue?.minValue || 0,  
-                    referenceValue?.maxValue || 0  
-                  )}  
+              {/* Güncel Test Değeri */}  
+              <View style={styles.currentTestContainer}>  
+                <Text style={styles.testValue}>  
+                  {currentValue.value} {currentValue.unit}  
+                  <Text style={styles.changeIndicator}>  
+                    {' '}{getComparisonIndicator(  
+                      currentValue.value,  
+                      referenceValue?.minValue || 0,  
+                      referenceValue?.maxValue || 0  
+                    )}  
+                  </Text>  
                 </Text>  
-              </Text>  
   
-              <Text style={styles.testDate}>{currentValue.test_date}</Text>  
-              <Text style={styles.patientAge}>Yaş: {currentValue.age}</Text>  
+                <Text style={styles.testDate}>{currentValue.test_date}</Text>  
+                <Text style={styles.patientAge}>Yaş: {currentValue.age}</Text>  
+              </View>  
+  
+              {/* Geçmiş Tahliller */}  
+              <View style={styles.historicalTestsContainer}>  
+                <Text style={styles.historicalTestsTitle}>Geçmiş Tahliller:</Text>  
+                {sortedValues.slice(1).map((historicalValue, index) => (  
+                  <View key={`historical-${index}`} style={styles.historicalTestItem}>  
+                    <Text style={styles.historicalTestValue}>  
+                      {historicalValue.value} {historicalValue.unit}  
+                    </Text>  
+                    <Text style={styles.historicalTestDate}>  
+                      {historicalValue.test_date}  
+                    </Text>  
+                    <Text style={styles.historicalTestAge}>  
+                      Yaş: {historicalValue.age}  
+                    </Text>  
+                  </View>  
+                ))}  
+              </View>  
             </View>  
           );  
         })}  
       </View>  
     );  
-  };
+  };  
 
   if (loading) {
     return (
@@ -317,6 +338,41 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
   },
+  currentTestContainer: {  
+    backgroundColor: '#f0f0f0',  
+    padding: 10,  
+    borderRadius: 8,  
+    marginBottom: 10,  
+  },  
+  historicalTestsContainer: {  
+    backgroundColor: '#f9f9f9',  
+    padding: 10,  
+    borderRadius: 8,  
+  },  
+  historicalTestsTitle: {  
+    fontWeight: 'bold',  
+    marginBottom: 5,  
+    color: '#333',  
+  },  
+  historicalTestItem: {  
+    flexDirection: 'row',  
+    justifyContent: 'space-between',  
+    alignItems: 'center',  
+    paddingVertical: 5,  
+    borderBottomWidth: 1,  
+    borderBottomColor: '#e0e0e0',  
+  },  
+  historicalTestValue: {  
+    fontSize: 14,  
+  },  
+  historicalTestDate: {  
+    fontSize: 12,  
+    color: '#666',  
+  },  
+  historicalTestAge: {  
+    fontSize: 12,  
+    color: '#666',  
+  },  
 });
 
 export default LabResults;
