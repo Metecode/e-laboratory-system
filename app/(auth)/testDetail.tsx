@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';  
 import { View, Text, StyleSheet, ScrollView } from 'react-native';  
 import { useLocalSearchParams } from 'expo-router';  
+import firestore from '@react-native-firebase/firestore';  
 
 interface TestResult {  
   id: string;  
@@ -8,43 +9,129 @@ interface TestResult {
   value: number;  
   unit: string;  
   age: string;  
-  reference_min?: number;  
-  reference_max?: number;  
+}  
+
+interface Guideline {  
+  name: string;  
+  category: string;  
+  references: {  
+    age_min: number;  
+    age_max: number;  
+    gender?: string;  
+    min: number;  
+    max: number;  
+  }[];  
 }  
 
 export default function TestDetail() {  
   const { test_name, results } = useLocalSearchParams();  
   const [categoryResults, setCategoryResults] = useState<TestResult[]>([]);  
+  const [guidelines, setGuidelines] = useState<Guideline[]>([]);  
+
+  const fetchGuidelines = async () => {  
+    try {  
+      const guidelinesSnapshot = await firestore()  
+        .collection('guidelines')  
+        .get();  
+  
+      const guidelinesData = guidelinesSnapshot.docs.flatMap(doc => {  
+        const data = doc.data();  
+        return data.guidelines.map(guideline => {  
+          return {  
+            name: guideline.name,  
+            category: guideline.category,  
+            references: guideline.references || []  
+          };  
+        });  
+      });  
+  
+      setGuidelines(guidelinesData);  
+    } catch (error) {  
+      console.error('Kılavuz çekme hatası:', error);  
+    }  
+  };  
+
+  const getResultStatus = (result: TestResult) => {  
+    const referenceValues = getReferenceValues(result);  
+    
+    if (!referenceValues) return 'normal';  
+  
+    if (result.value < referenceValues.min) return 'low';  
+    if (result.value > referenceValues.max) return 'high';  
+    
+    return 'normal';  
+  }; 
+
+  const getReferenceValues = (result: TestResult) => {  
+  // Test adına göre uygun kılavuzu bul  
+  const matchingGuideline = guidelines.find(guide =>   
+    guide.category.toLowerCase() === test_name?.toLowerCase()  
+  );  
+
+  if (!matchingGuideline) {  
+    console.log('No matching guideline found for:', test_name);  
+    return null;  
+  }  
+
+  // Yaş için uygun referansı bul  
+  const userAge = parseInt(result.age);  
+  
+  const matchingReference = matchingGuideline.references.find(ref => {  
+    const [minAge, maxAge] = ref.ageGroup.split('-').map(age => {  
+      // 16+ gibi durumları kontrol et  
+      if (age.includes('+')) {  
+        return parseInt(age);  
+      }  
+      return parseInt(age);  
+    });  
+
+    if (maxAge === undefined && minAge + '+' === ref.ageGroup) {  
+      // 16+ gibi durumlar için  
+      return userAge >= minAge;  
+    }  
+
+    return userAge >= minAge && userAge <= maxAge;  
+  });  
+
+  if (!matchingReference) {  
+    console.log('No matching reference found for age:', userAge);  
+    return null;  
+  }  
+
+  return {  
+    min: matchingReference.minValue,  
+    max: matchingReference.maxValue  
+  };  
+};
 
   useEffect(() => {  
-    // results parametresini parse et  
+    fetchGuidelines();  
+
     if (results) {  
       try {  
         const parsedResults = JSON.parse(results as string);  
-        setCategoryResults(parsedResults);  
+        // Test adına göre sonuçları al (örn: IgA sonuçları)  
+        const testResults = parsedResults[test_name as string] || [];  
+        
+        // Sonuçları tarihe göre sırala  
+        const sortedResults = Object.values(testResults)  
+          .map((result: any) => ({  
+            id: result.id,  
+            test_date: result.test_date,  
+            value: result.value,  
+            unit: result.unit,  
+            age: result.age  
+          }))  
+          .sort((a: TestResult, b: TestResult) =>   
+            new Date(b.test_date).getTime() - new Date(a.test_date).getTime()  
+          );  
+
+        setCategoryResults(sortedResults);  
       } catch (error) {  
         console.error("Error parsing results:", error);  
       }  
     }  
-  }, [results]);  
-
-  const getResultStatus = (value: number, min?: number, max?: number) => {  
-    if (!min || !max) return 'normal';  
-    if (value < min) return 'low';  
-    if (value > max) return 'high';  
-    return 'normal';  
-  };  
-
-  const getStatusIcon = (status: string) => {  
-    switch (status) {  
-      case 'low':  
-        return '↓';  
-      case 'high':  
-        return '↑';  
-      default:  
-        return '↔';  
-    }  
-  };  
+  }, [results, test_name]);  
 
   const getStatusColor = (status: string) => {  
     switch (status) {  
@@ -57,25 +144,54 @@ export default function TestDetail() {
     }  
   };  
 
+  const getTrendIcon = (currentResult: TestResult, index: number) => {  
+    if (index === categoryResults.length - 1) return '';  
+
+    const nextResult = categoryResults[index + 1];  
+    
+    if (currentResult.value > nextResult.value) {  
+      return '↑'; // Artış  
+    } else if (currentResult.value < nextResult.value) {  
+      return '↓'; // Azalış  
+    } else {  
+      return '↔'; // Değişim yok  
+    }  
+  };  
+
+  useEffect(() => {  
+    // Kılavuzları çek  
+    fetchGuidelines();  
+
+    if (results) {  
+      try {  
+        const parsedResults = JSON.parse(results as string);  
+        const sortedResults = parsedResults.sort((a: TestResult, b: TestResult) =>   
+          new Date(b.test_date).getTime() - new Date(a.test_date).getTime()  
+        );  
+        setCategoryResults(sortedResults);  
+      } catch (error) {  
+        console.error("Error parsing results:", error);  
+      }  
+    }  
+  }, [results]);  
+
   if (!categoryResults || categoryResults.length === 0) {  
     return (  
       <View style={styles.container}>  
         <Text>Tahlil sonuçları bulunamadı.</Text>  
       </View>  
     );  
-  }  
+  }   
 
   return (  
     <ScrollView style={styles.container}>  
       <Text style={styles.title}>{test_name} Tahlil Geçmişi</Text>  
       {categoryResults.map((result, index) => {  
-        const status = getResultStatus(  
-          result.value,  
-          result.reference_min,  
-          result.reference_max  
-        );  
+        const referenceValues = getReferenceValues(result);  
+        const status = getResultStatus(result);  
+  
         return (  
-          <View key={index} style={styles.resultContainer}>  
+          <View key={result.id} style={styles.resultContainer}>  
             <Text style={styles.dateText}>  
               Test Tarihi: {result.test_date}  
             </Text>  
@@ -84,22 +200,31 @@ export default function TestDetail() {
                 styles.valueText,  
                 { color: getStatusColor(status) }  
               ]}>  
-                {result.value} {result.unit} {getStatusIcon(status)}  
+                {result.value} {result.unit}  
               </Text>  
             </View>  
-            <Text style={styles.referenceText}>  
-              Referans Aralığı: {result.reference_min} - {result.reference_max} {result.unit}  
-            </Text>  
+            {referenceValues && (  
+              <Text style={styles.referenceText}>  
+                Referans Aralığı: {referenceValues.min} - {referenceValues.max} {result.unit}  
+              </Text>  
+            )}  
             <Text style={styles.ageText}>  
               Yaş: {result.age}  
             </Text>  
+            {status !== 'normal' && (  
+              <Text style={[  
+                styles.warningText,  
+                { color: status === 'low' ? '#2196F3' : '#F44336' }  
+              ]}>  
+                {status === 'low' ? 'Düşük' : 'Yüksek'} Seviye  
+              </Text>  
+            )}  
           </View>  
         );  
       })}  
     </ScrollView>  
   );  
-}  
-
+}
 const styles = StyleSheet.create({  
   container: {  
     flex: 1,  
@@ -138,6 +263,11 @@ const styles = StyleSheet.create({
     fontSize: 20,  
     fontWeight: 'bold',  
   },  
+  trendIcon: {  
+    fontSize: 20,  
+    fontWeight: 'bold',  
+    marginLeft: 8,  
+  },  
   referenceText: {  
     fontSize: 14,  
     color: '#666',  
@@ -146,5 +276,11 @@ const styles = StyleSheet.create({
   ageText: {  
     fontSize: 14,  
     color: '#666',  
+  },  
+  warningText: {  
+    marginTop: 8,  
+    fontSize: 14,  
+    fontWeight: 'bold',  
+    textAlign: 'center',  
   },  
 });
