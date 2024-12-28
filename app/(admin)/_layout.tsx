@@ -119,6 +119,13 @@ export default function AdminLayout() {
           href: null, // Bu sayfayı tab bar'da göstermez  
         }}
       />
+      <Tabs.Screen
+        name="addPatientScreen"  // veya hangi ismi kullandıysanız  
+        options={{
+          title: 'Tahlil Ekle',
+          href: null, // Bu sayfayı tab bar'da göstermez  
+        }}
+      />
     </Tabs>
   );
 }
