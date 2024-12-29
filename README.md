@@ -1,50 +1,164 @@
-# Welcome to your Expo app 👋
+# 🩺 Sağlık Tahlil Takip Uygulaması
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Proje Genel Bakış
 
-## Get started
+Bu uygulama, sağlık profesyonelleri ve hastalar için geliştirilmiş kapsamlı bir tıbbi tahlil takip sistemidir. İki farklı kullanıcı profili ile çalışır: Doktor (Admin) ve Hasta.
 
-1. Install dependencies
+### Özellikler
 
-   ```bash
-   npm install
-   ```
+#### Doktor (Admin) Profili
+- 👥 Hasta listesini görüntüleme
+- 📋 Hastaların tüm tahlil sonuçlarını inceleme
+- ✏️ Tahlil sonuçları için referans kılavuzları oluşturma
+- 🔍 Detaylı tahlil raporları ve karşılaştırmaları yapma
+- 📊 Hasta tahlil verilerini analiz etme
 
-2. Start the app
+#### Hasta Profili
+- 🩸 Kendi tahlil sonuçlarını görüntüleme
+- 📈 Geçmiş tahlil sonuçlarını karşılaştırma
+- 🕒 Tahlil geçmişini takip etme
+- 🚨 Referans değerlerine göre uyarı alma
 
-   ```bash
-    npx expo start
-   ```
+## Teknolojiler
 
-In the output, you'll find options to open the app in a
+- **Frontend:** React Native
+- **Backend:** Firebase Firestore
+- **State Management:** React Hooks
+- **Routing:** Expo Router
+- **Authentication:** Firebase Authentication
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Kurulum
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Gereksinimler
+- Node.js
+- npm veya yarn
+- Expo CLI
+- Firebase Hesabı
 
-## Get a fresh project
-
-When you're ready, run:
-
+### Kurulum Adımları
+1. Depoyu klonlayın
 ```bash
-npm run reset-project
+git clone https://github.com/kullanici-adi/medical-test-tracking.git
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Bağımlılıkları yükleyin
+```bash
+cd medical-test-tracking
+npm install
+# veya
+yarn install
+```
 
-## Learn more
+3. Firebase Konfigürasyonu
+- Firebase konsolundan bir proje oluşturun
+- `google-services.json` ve `GoogleService-Info.plist` dosyalarını ekleyin
+- Firebase ortam değişkenlerini `.env` dosyasına ekleyin
 
-To learn more about developing your project with Expo, look at the following resources:
+4. Uygulamayı Başlatın
+```bash
+npx expo run:android
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Veritabanı Yapısı
 
-## Join the community
+### Firestore Koleksiyonları
+- `users`: Kullanıcı profilleri
+- `test_results`: Tahlil sonuçları
+- `guidelines`: Tahlil referans kılavuzları
+- `admin`: Admin profilleri
+  
+## Güvenlik ve Yetkilendirme
+- Firebase Authentication
+- Rol bazlı erişim kontrolü
+- Kullanıcı verilerinin şifrelenmesi
 
-Join our community of developers creating universal apps.
+## Ekran Görüntüleri  
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Doktor Paneli  
+
+<div align="center">  
+  <table>  
+    <tr>  
+      <td align="center">  
+        <strong>Ana Sayfa ve Genel Durum</strong><br>  
+        <img src="https://github.com/user-attachments/assets/c5f693ef-3bee-46ec-bce0-5fc1848f9ee0" width="300">  
+      </td>  
+      <td align="center">  
+        <strong>Hasta Listesi</strong><br>  
+        <img src="https://github.com/user-attachments/assets/23606db9-61a1-4a6e-95d1-d589fd9de7a4" width="300">  
+      </td>  
+    </tr>  
+    <tr>  
+      <td align="center">  
+        <strong>Tahlil Sonuçları Yönetimi</strong><br>  
+        <img src="https://github.com/user-attachments/assets/bb76735d-3227-4790-93cf-ff3992e7d373" width="300">  
+      </td>  
+      <td align="center">  
+        <strong>Referans Kılavuzu Oluşturma</strong><br>  
+        <img src="https://github.com/user-attachments/assets/6b16a15b-d9fb-43c2-bf48-f3f3fceb57a1" width="300">  
+      </td>  
+    </tr>  
+    <tr>  
+      <td align="center" colspan="2">  
+        <strong>Tahlil Sonuçları Karşılaştırma</strong><br>  
+        <img src="https://github.com/user-attachments/assets/5863b602-cfb3-4b83-9ef9-a379a4762c61" width="600">  
+      </td>  
+    </tr>  
+    <tr>  
+      <td align="center">  
+        <strong>Referans Kılavuzu Düzenleme</strong><br>  
+        <img src="https://github.com/user-attachments/assets/a931ee0b-4c4a-427e-913d-410da0891a77" width="300">  
+      </td>  
+      <td align="center">  
+        <strong>Doktor Profil Yönetimi</strong><br>  
+        <img src="https://github.com/user-attachments/assets/65db050f-2aff-4ccb-af42-a91cdb117936" width="300">  
+      </td>  
+    </tr>  
+  </table>  
+</div>  
+
+### Hasta Paneli  
+
+<div align="center">  
+  <table>  
+    <tr>  
+      <td align="center">  
+        <strong>Ana Sayfa</strong><br>  
+        <img src="https://github.com/user-attachments/assets/665f4868-8093-4365-9ba7-d5fb50bec79e" width="300">  
+      </td>  
+      <td align="center">  
+        <strong>Kişisel Tahlil Geçmişi</strong><br>  
+        <img src="https://github.com/user-attachments/assets/49b0cc77-3391-41b9-965a-b71e199880d9" width="300">  
+      </td>  
+    </tr>  
+    <tr>  
+      <td align="center">  
+        <strong>Referans Değerleri Karşılaştırması</strong><br>  
+        <img src="https://github.com/user-attachments/assets/1be5d233-1702-4042-8b7e-7720e9ecd5ba" width="300">  
+      </td>  
+      <td align="center">  
+        <strong>Profil Sayfası</strong><br>  
+        <img src="https://github.com/user-attachments/assets/65479dae-9fb1-4e99-8878-26d9475d80a1" width="300">  
+      </td>  
+    </tr>  
+  </table>  
+</div>  
+
+## Katkıda Bulunma
+1. Fork yapın
+2. Yeni özellik dalı oluşturun (`git checkout -b feature/AmazingFeature`)
+3. Değişiklikleri commit edin (`git commit -m 'Add some AmazingFeature'`)
+4. Dalınıza push yapın (`git push origin feature/AmazingFeature`)
+5. Pull Request açın
+
+## Lisans
+MIT Lisansı altında dağıtılmaktadır.
+
+## İletişim
+- Proje Linki: [[GitHub Deposu](https://github.com/Metecode/e-laboratory-system)]
+- E-posta: ismail.ucar2@ogr.sakarya.edu.tr
+
+## Teşekkürler 🙏
+- React Native Topluluğu
+- Firebase
+- Expo
