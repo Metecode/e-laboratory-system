@@ -68,8 +68,7 @@ export default function TestDetail() {
     guide.category.toLowerCase() === test_name?.toLowerCase()  
   );  
 
-  if (!matchingGuideline) {  
-    console.log('No matching guideline found for:', test_name);  
+  if (!matchingGuideline) {
     return null;  
   }  
 
@@ -146,7 +145,7 @@ export default function TestDetail() {
 
   const getTrendIcon = (currentResult: TestResult, index: number) => {  
     if (index === categoryResults.length - 1) return '';  
-
+  
     const nextResult = categoryResults[index + 1];  
     
     if (currentResult.value > nextResult.value) {  
@@ -156,7 +155,7 @@ export default function TestDetail() {
     } else {  
       return '↔'; // Değişim yok  
     }  
-  };  
+  }; 
 
   useEffect(() => {  
     // Kılavuzları çek  
@@ -189,7 +188,8 @@ export default function TestDetail() {
       {categoryResults.map((result, index) => {  
         const referenceValues = getReferenceValues(result);  
         const status = getResultStatus(result);  
-  
+        const trendIcon = getTrendIcon(result, index);  
+    
         return (  
           <View key={result.id} style={styles.resultContainer}>  
             <Text style={styles.dateText}>  
@@ -202,6 +202,17 @@ export default function TestDetail() {
               ]}>  
                 {result.value} {result.unit}  
               </Text>  
+              {trendIcon && (  
+                <Text style={[  
+                  styles.trendIcon,  
+                  {   
+                    color: trendIcon === '↑' ? '#F44336' :   
+                           trendIcon === '↓' ? '#2196F3' : '#4CAF50'  
+                  }  
+                ]}>  
+                  {trendIcon}  
+                </Text>  
+              )}  
             </View>  
             {referenceValues && (  
               <Text style={styles.referenceText}>  
@@ -211,12 +222,28 @@ export default function TestDetail() {
             <Text style={styles.ageText}>  
               Yaş: {result.age}  
             </Text>  
-            {status !== 'normal' && (  
+            {status === 'normal' && (  
               <Text style={[  
                 styles.warningText,  
-                { color: status === 'low' ? '#2196F3' : '#F44336' }  
+                { color: '#4CAF50' } // Normal seviyede yeşil renk  
               ]}>  
-                {status === 'low' ? 'Düşük' : 'Yüksek'} Seviye  
+                Normal Seviye  
+              </Text>  
+            )}  
+            {status === 'low' && (  
+              <Text style={[  
+                styles.warningText,  
+                { color: '#2196F3' }  
+              ]}>  
+                Düşük Seviye  
+              </Text>  
+            )}  
+            {status === 'high' && (  
+              <Text style={[  
+                styles.warningText,  
+                { color: '#F44336' }  
+              ]}>  
+                Yüksek Seviye  
               </Text>  
             )}  
           </View>  
@@ -226,6 +253,18 @@ export default function TestDetail() {
   );  
 }
 const styles = StyleSheet.create({  
+  trendIcon: {  
+    fontSize: 20,  
+    fontWeight: 'bold',  
+    marginLeft: 8,  
+    alignSelf: 'center'  
+  },  
+  valueContainer: {  
+    flexDirection: 'row',  
+    alignItems: 'center',  
+    marginBottom: 8,  
+    justifyContent: 'space-between' // İkonu sağa hizalar  
+  },
   container: {  
     flex: 1,  
     padding: 20,  
@@ -253,20 +292,10 @@ const styles = StyleSheet.create({
     fontSize: 16,  
     color: '#666',  
     marginBottom: 8,  
-  },  
-  valueContainer: {  
-    flexDirection: 'row',  
-    alignItems: 'center',  
-    marginBottom: 8,  
-  },  
+  }, 
   valueText: {  
     fontSize: 20,  
     fontWeight: 'bold',  
-  },  
-  trendIcon: {  
-    fontSize: 20,  
-    fontWeight: 'bold',  
-    marginLeft: 8,  
   },  
   referenceText: {  
     fontSize: 14,  
