@@ -46,6 +46,53 @@ const LabResults = () => {
 
   const [filteredUsers, setFilteredUsers] = useState<UserTestResults[]>(testResults);
 
+  useEffect(() => {  
+    // Guidelines için gerçek zamanlı listener  
+    const guidelinesListener = firestore()  
+      .collection('guidelines')  
+      .onSnapshot(  
+        (snapshot) => {  
+          const guidelinesData = snapshot.docs.flatMap(doc => {  
+            const data = doc.data();  
+            return data.guidelines.map((guideline: { name?: string; category: string; references?: Reference[] }) => ({  
+              name: guideline.name,  
+              category: guideline.category,  
+              references: guideline.references || []  
+            }));  
+          });  
+  
+          setGuidelines(guidelinesData);  
+        },  
+        (error) => {  
+          console.error('Guidelines listener error:', error);  
+        }  
+      );  
+  
+    // Test sonuçları için gerçek zamanlı listener  
+    const resultsListener = firestore()  
+      .collection('test_results')  
+      .onSnapshot(  
+        (snapshot) => {  
+          const results = snapshot.docs.map(doc => ({  
+            id: doc.id,  
+            ...doc.data()  
+          })) as UserTestResults[];  
+  
+          setTestResults(results);  
+        },  
+        (error) => {  
+          console.error('Results listener error:', error);  
+        }  
+      );  
+  
+    // Cleanup function  
+    return () => {  
+      guidelinesListener();  
+      resultsListener();  
+    };  
+  }, []);
+
+
   // searchText değiştiğinde filtreleme yapan useEffect  
   useEffect(() => {
     if (searchText) {
@@ -70,7 +117,7 @@ const LabResults = () => {
 
         const guidelinesData = guidelinesSnapshot.docs.flatMap(doc => {
           const data = doc.data();
-          return data.guidelines.map(guideline => ({
+          return data.guidelines.map((guideline: { name?: string; category: string; references?: Reference[] }) => ({
             name: guideline.name,
             category: guideline.category,
             references: guideline.references || []
@@ -133,7 +180,7 @@ const LabResults = () => {
 
       const guidelinesArray: Guideline[] = snapshot.docs.flatMap(doc => {
         const data = doc.data();
-        return data.guidelines.map(guideline => ({
+        return data.guidelines.map((guideline: { name?: string; category: string; references?: Reference[] }) => ({
           name: guideline.name,
           category: guideline.category,
           references: guideline.references || []
@@ -181,10 +228,15 @@ const LabResults = () => {
     if (!reference) return null;
 
     const isOutOfRange = value < reference.minValue || value > reference.maxValue;
+    const getReferenceIndicator = (value: number) => {
+      if (value < reference.minValue) return '↓';
+      if (value > reference.maxValue) return '↑';
+      return '↔';
+    };
 
     return {
       isOutOfRange,
-      indicator: getComparisonIndicator(value, reference.minValue, reference.maxValue),
+      indicator: getReferenceIndicator(value),
       text: isOutOfRange ? 'Referans Dışı' : 'Normal',
       color: isOutOfRange ? '#ff0000' : '#008000',
       reference: reference
@@ -238,10 +290,10 @@ const LabResults = () => {
                     [testType]: selectedGuideline
                   }));
                 }}
-                buttonTextAfterSelection={(selectedItem) => {
+                buttonTextAfterSelection={(selectedItem: Guideline) => {
                   return selectedItem.name || selectedItem.category;
                 }}
-                rowTextForSelection={(item) => {
+                rowTextForSelection={(item: Guideline) => {
                   return item.name || item.category;
                 }}
                 renderButton={(selectedItem) => (
