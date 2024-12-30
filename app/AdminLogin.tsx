@@ -22,21 +22,30 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       // Firebase Authentication ile giriş yap
-      await auth().signInWithEmailAndPassword(email, password);
-
-      // Admin verilerini query parametreleriyle aktar
-      router.replace(
-        '/(admin)/home' // Query parametreleri
-      );
-      alert('Login successful!');
-    }
-    catch (error) {
+      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+  
+      // Giriş yapan kullanıcının UID'sini al
+      const { uid } = userCredential.user;
+  
+      // İzin verilen UID'ler
+      const allowedUids = ['vzKY8jtMn2ZgYKOzqmAKQInI8Fn2', 'OoJp7XPAzg1Lr2yPAvMQ'];
+  
+      if (allowedUids.includes(uid)) {
+        // Admin verilerini query parametreleriyle aktar
+        router.replace('/(admin)/home');
+        alert('Giriş başarılı!'); // Giriş başarılı uyarısı
+      } else {
+        alert('Yetkisiz giriş!'); // Yetkisiz giriş uyarısı
+        await auth().signOut(); // Kullanıcıyı çıkış yap
+      }
+    } catch (error) {
       console.error('Error during login: ', error);
       alert('An error occurred while logging in. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
+  
 
 
   return (
